@@ -36,16 +36,9 @@ int main( int argc, const char* argv[] )
     decimal_to_octal(tar->size, (int)my_stat.st_size, 11);
     decimal_to_octal(tar->mtime, (int)my_stat.st_mtime, 11);
 
-
-
-    printf("%o\n", my_stat.st_size);
-    printf("%d\n", my_stat.st_size);
-
-    printf("%07o\n", 1323);
-    char a[12];
-    decimal_to_octal(a, 1323, 7);
-    printf("%s\n",a);
-
+    populate_block(tar);
+    decimal_to_octal(tar->chksum, get_tar_checksum(tar), 6);
+    tar->chksum[6] = '\0';
 
     free(tar);
     return 0;

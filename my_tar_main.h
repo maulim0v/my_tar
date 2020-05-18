@@ -41,6 +41,10 @@ int my_int_max(int left, int right);
 int my_int_min(int left, int right);
 
 void my_str_copy(char *dest, const char *src);
+void my_full_str_copy(char *dest, int *dest_str_ind, const char *src, size_t src_sz);
 
 
 void decimal_to_octal(char *dest, int input, int placeholder);
+void populate_block(struct my_tar_type *tar);
+
+int get_tar_checksum(struct my_tar_type *tar);
