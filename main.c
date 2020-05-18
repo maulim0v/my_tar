@@ -1,6 +1,7 @@
 
 #include "my_tar_main.h"
 
+#include <fcntl.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 
@@ -23,6 +24,8 @@ int main( int argc, const char* argv[] )
 
     const char *test_file = files[0];
 
+    const int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC);
+    printf("%d\n", fd);
 
     struct my_tar_type *tar = create_tar_ptr();
 
@@ -36,9 +39,29 @@ int main( int argc, const char* argv[] )
     decimal_to_octal(tar->size, (int)my_stat.st_size, 11);
     decimal_to_octal(tar->mtime, (int)my_stat.st_mtime, 11);
 
-    populate_block(tar);
+    if ((my_stat.st_mode & S_IFMT) == S_IFREG)
+    {
+        tar->typeflag = NORMAL_FILE;
+    }
+    else if ((my_stat.st_mode & S_IFMT) == S_IFDIR)
+    {
+        init_char_array(tar->size, SIZE_MAX_ELEMENT - 1, '0');
+        tar->typeflag = DIRECTORY;
+    }
+    
+    // my_str_copy(tar->ustar, "ustar  \x00");
+
+    int str_ind = populate_block(tar) - 9;
     decimal_to_octal(tar->chksum, get_tar_checksum(tar), 6);
     tar->chksum[6] = '\0';
+    tar->chksum[7] = ' ';
+    my_full_str_copy(tar->block, &str_ind, tar->chksum, CHKSUM_MAX_ELEMENT);
+
+    //write(1, tar->block, 512);
+    int tr = write(fd, tar->block, 512);
+    //printf("\n%d\n", tr);
+
+    close(fd);
 
     free(tar);
     return 0;

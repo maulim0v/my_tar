@@ -1,15 +1,34 @@
 
 #include <stddef.h>
 
-#define NAME_MAX_ELEMENT 100
-#define MODE_MAX_ELEMENT 8
-#define UID_MAX_ELEMENT 8
-#define GID_MAX_ELEMENT 8
-#define SIZE_MAX_ELEMENT 12
-#define MTIME_MAX_ELEMENT 12
-#define CHKSUM_MAX_ELEMENT 8
-#define LINKNAME_MAX_ELEMENT 100
+/* POSIX header constants */
+#define NAME_MAX_ELEMENT 100                 // 100
+#define MODE_MAX_ELEMENT 8                   // 108
+#define UID_MAX_ELEMENT 8                    // 116
+#define GID_MAX_ELEMENT 8                    // 124
+#define SIZE_MAX_ELEMENT 12                  // 136
+#define MTIME_MAX_ELEMENT 12                 // 148  
+#define CHKSUM_MAX_ELEMENT 8                 // 156  
+#define LINKNAME_MAX_ELEMENT 100             // 256      
+
+/* UStar format header constants */
+#define SEVERAL_OLD_FIELDS_MAX_ELEMENT 156   // 156
+#define ALSO_LINK_NAME_MAX_ELEMENT 100       // 256
+#define USTAR_MAX_ELEMENT 8                  // 
+#define OWNER_MAX_ELEMENT 32
+#define GROUP_MAX_ELEMENT 32
+#define MAJOR_MAX_ELEMENT 8
+#define MINOR_MAX_ELEMENT 8
+#define PREFIX_MAX_ELEMENT 155
+
+// BLOCK size
 #define BLOCK_MAX_ELEMENT 512
+
+/* Type flag constants */
+const static char NORMAL_FILE = '0';
+const static char HARD_LINK = '1';
+const static char SYMBOLIC_LINK = '2';
+const static char DIRECTORY = '5';
 
 struct my_tar_type
 {
@@ -22,8 +41,21 @@ struct my_tar_type
     char size[SIZE_MAX_ELEMENT];             
     char mtime[MTIME_MAX_ELEMENT];            
     char chksum[CHKSUM_MAX_ELEMENT];            
-    char typeflag;             
-    char linkname[LINKNAME_MAX_ELEMENT]; 
+    //char link;             
+    //char linkname[LINKNAME_MAX_ELEMENT]; 
+    /// @}
+
+    /* UStar format */
+    /// @{
+    //char several_old_fields[SEVERAL_OLD_FIELDS_MAX_ELEMENT];             
+    char typeflag;                  
+    //char also_link_name[ALSO_LINK_NAME_MAX_ELEMENT];  
+    //char ustar[USTAR_MAX_ELEMENT];              
+    //char owner[OWNER_MAX_ELEMENT];           
+    //char group[GROUP_MAX_ELEMENT];            
+    //char major[MAJOR_MAX_ELEMENT];             
+    //char minor[MINOR_MAX_ELEMENT];             
+    //char prefix[PREFIX_MAX_ELEMENT];
     /// @}
 
     char block[BLOCK_MAX_ELEMENT];
@@ -45,6 +77,6 @@ void my_full_str_copy(char *dest, int *dest_str_ind, const char *src, size_t src
 
 
 void decimal_to_octal(char *dest, int input, int placeholder);
-void populate_block(struct my_tar_type *tar);
+int populate_block(struct my_tar_type *tar);
 
 int get_tar_checksum(struct my_tar_type *tar);

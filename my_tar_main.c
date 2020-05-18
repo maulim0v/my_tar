@@ -19,9 +19,9 @@ void init_tar_ptr(struct my_tar_type *tar)
     init_char_array(tar->gid, GID_MAX_ELEMENT, init_char);
     init_char_array(tar->size, SIZE_MAX_ELEMENT, init_char);
     init_char_array(tar->mtime, MTIME_MAX_ELEMENT, init_char);
-    init_char_array(tar->chksum, CHKSUM_MAX_ELEMENT, ' ');
+    init_char_array(tar->chksum, CHKSUM_MAX_ELEMENT, init_char);
     tar->typeflag = init_char;
-    init_char_array(tar->linkname, LINKNAME_MAX_ELEMENT, init_char);
+    //init_char_array(tar->linkname, LINKNAME_MAX_ELEMENT, init_char);
     init_char_array(tar->block, BLOCK_MAX_ELEMENT, init_char);
 }
 
@@ -103,7 +103,7 @@ void decimal_to_octal(char *dest, int input, int placeholder)
     }
 }
 
-void populate_block(struct my_tar_type *tar)
+int populate_block(struct my_tar_type *tar)
 {
     int str_ind = 0;
     my_full_str_copy(tar->block, &str_ind, tar->name, NAME_MAX_ELEMENT);
@@ -112,6 +112,12 @@ void populate_block(struct my_tar_type *tar)
     my_full_str_copy(tar->block, &str_ind, tar->gid, GID_MAX_ELEMENT);
     my_full_str_copy(tar->block, &str_ind, tar->size, SIZE_MAX_ELEMENT);
     my_full_str_copy(tar->block, &str_ind, tar->mtime, MTIME_MAX_ELEMENT);
+    my_full_str_copy(tar->block, &str_ind, tar->chksum, CHKSUM_MAX_ELEMENT);
+    {
+        tar->block[str_ind++] = tar->typeflag;
+    }
+
+    return str_ind;
 }
 
 int get_tar_checksum(struct my_tar_type *tar)
