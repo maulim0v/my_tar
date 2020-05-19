@@ -1,5 +1,6 @@
 #include "my_tar_main.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -128,4 +129,72 @@ int get_tar_checksum(struct my_tar_type *tar)
         checksum += (int) tar->block[i];
     }
     return checksum;
+}
+
+void my_tar_read(int fd, struct my_tar_type *tar)
+{
+    long unsigned offset = 0;
+
+    int read_sz = my_file_read(fd, tar->block, 512);
+    if (read_sz != 512)
+    {
+        my_str_write(1, "Failed to read block! Stopping reading tar...\n");
+        return;
+    }
+
+    unpopulate_block(tar);    
+    tar->data_begin_ind = offset;
+
+}
+
+int my_file_read(int fd, char *src, int src_sz)
+{
+    int read_sz = my_int_max(read(fd, src, src_sz), 0);
+    return read_sz;
+}
+
+void unpopulate_block(struct my_tar_type *tar)
+{
+    int str_ind = 0;
+    my_full_str_uncopy(tar->name,   NAME_MAX_ELEMENT,   tar->block, &str_ind);
+    my_full_str_uncopy(tar->mode,   MODE_MAX_ELEMENT,   tar->block, &str_ind);
+    my_full_str_uncopy(tar->uid,    UID_MAX_ELEMENT,    tar->block, &str_ind);
+    my_full_str_uncopy(tar->gid,    GID_MAX_ELEMENT,    tar->block, &str_ind);
+    my_full_str_uncopy(tar->size,   SIZE_MAX_ELEMENT,   tar->block, &str_ind);
+    my_full_str_uncopy(tar->mtime,  MTIME_MAX_ELEMENT,  tar->block, &str_ind);
+    my_full_str_uncopy(tar->chksum, CHKSUM_MAX_ELEMENT, tar->block, &str_ind);
+    {
+        tar->typeflag = tar->block[str_ind++];
+    }
+}
+
+void my_full_str_uncopy(char* dest, size_t dest_sz, const char *src, int *src_str_ind)
+{
+    int str_ind = *src_str_ind;
+    int i = 0;
+    for(; (str_ind + i) < (str_ind + dest_sz); ++i)
+    {
+        dest[i] = src[str_ind + i];
+    }
+    *src_str_ind = str_ind + i;
+}
+
+int octal_to_decimal(char *src)
+{
+    int decimal_sum = 0;
+    const size_t src_sz = my_str_len(src);    
+    for(int i = src_sz - 1; i >= 0; --i)
+    {
+        const int digit = src[src_sz - 1 - i] - 48;
+        if (digit == 0) continue;
+        int j = 0;
+        int power_8 = 1;
+        while(j++ < i)
+        {
+            power_8 *= 8;
+        }
+        decimal_sum += digit * power_8;
+    }
+
+    return decimal_sum;
 }

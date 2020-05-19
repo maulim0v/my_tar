@@ -60,6 +60,8 @@ struct my_tar_type
 
     char block[BLOCK_MAX_ELEMENT];
 
+    long unsigned data_begin_ind; 
+
     struct my_tar_type *next;
 };
 
@@ -80,3 +82,13 @@ void decimal_to_octal(char *dest, int input, int placeholder);
 int populate_block(struct my_tar_type *tar);
 
 int get_tar_checksum(struct my_tar_type *tar);
+
+
+
+
+
+void my_tar_read(int fd, struct my_tar_type *tar);
+int my_file_read(int fd, char *src, int src_sz);
+void unpopulate_block(struct my_tar_type *tar);
+void my_full_str_uncopy(char* dest, size_t dest_sz, const char *src, int *src_str_ind);
+int octal_to_decimal(char *src);
