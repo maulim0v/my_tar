@@ -1,4 +1,5 @@
 
+#include <stdbool.h>
 #include <stddef.h>
 
 /* POSIX header constants */
@@ -66,6 +67,9 @@ struct my_tar_type
 };
 
 struct my_tar_type* create_tar_ptr();
+void free_tar_ptr(struct my_tar_type *tar);
+struct my_tar_type** create_tar_double_ptr();
+void free_tar_double_ptr(struct my_tar_type **tar);
 void init_tar_ptr(struct my_tar_type *tar);
 void init_char_array(char *str, int size, const char init_char);
 
@@ -87,8 +91,12 @@ int get_tar_checksum(struct my_tar_type *tar);
 
 
 
-void my_tar_read(int fd, struct my_tar_type *tar);
+int my_tar_read(int fd, struct my_tar_type **tar);
 int my_file_read(int fd, char *src, int src_sz);
 void unpopulate_block(struct my_tar_type *tar);
 void my_full_str_uncopy(char* dest, size_t dest_sz, const char *src, int *src_str_ind);
 int octal_to_decimal(char *src);
+bool is_block_all_zeros(char *src, int src_sz);
+
+
+int my_tar_extract(int fd, struct my_tar_type **tar);

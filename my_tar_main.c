@@ -11,6 +11,37 @@ struct my_tar_type* create_tar_ptr()
     return tar;
 }
 
+void free_tar_ptr(struct my_tar_type *tar)
+{
+    free(tar);
+}
+
+struct my_tar_type** create_tar_double_ptr()
+{
+    struct my_tar_type **ret = (struct my_tar_type **) malloc (sizeof(struct my_tar_type *));
+    return ret;
+}
+
+void free_tar_double_ptr(struct my_tar_type **tar)
+{
+    if (tar == NULL)
+    {
+        return;
+    }
+
+    printf("I am here\n");
+    struct my_tar_type *tmp;
+    while(*tar != NULL)
+    {
+        printf("I am here 111\n");
+        tmp = *tar;
+        *tar = (*tar)->next;
+        free_tar_ptr(tmp);
+    }
+
+    free(tar);
+}
+
 void init_tar_ptr(struct my_tar_type *tar)
 {
     const char init_char = '\0';
@@ -131,20 +162,64 @@ int get_tar_checksum(struct my_tar_type *tar)
     return checksum;
 }
 
-void my_tar_read(int fd, struct my_tar_type *tar)
+int my_tar_read(int fd, struct my_tar_type **tar)
 {
     long unsigned offset = 0;
+    int files_read = 0;
 
-    int read_sz = my_file_read(fd, tar->block, 512);
-    if (read_sz != 512)
+    struct my_tar_type **local_tar = tar;
+
+    while(true)
     {
-        my_str_write(1, "Failed to read block! Stopping reading tar...\n");
-        return;
+        *local_tar = create_tar_ptr();
+        int read_sz = my_file_read(fd, (*local_tar)->block, 512);
+        if (read_sz != 512)
+        {
+            my_str_write(1, "Failed to read block! Stopping reading tar...\n");
+            free_tar_ptr(*local_tar);
+            *local_tar = NULL;
+            break;
+        }
+
+        if(is_block_all_zeros((*local_tar)->block, 512) == true)
+        {
+            read_sz = my_file_read(fd, (*local_tar)->block, 512);
+            if (read_sz != 512)
+            {
+                my_str_write(1, "Failed to read block after 1st all zeros block! Stopping reading tar...\n");
+                free_tar_ptr(*local_tar);
+                *local_tar = NULL;
+                break;
+            }
+
+            if(is_block_all_zeros((*local_tar)->block, 512) == true)
+            {
+                my_str_write(1, "Success on end of tar. Reading is terminating...\n");
+                free_tar_ptr(*local_tar);
+                *local_tar = NULL;
+                break;
+            }
+        }
+
+        unpopulate_block((*local_tar));    
+        (*local_tar)->data_begin_ind = offset;
+
+        int size_to_skip = octal_to_decimal((*local_tar)->size);
+        const int rem_to_skip = size_to_skip % 512;
+        if (rem_to_skip != 0)
+        {
+            size_to_skip += 512 - rem_to_skip;
+        }
+
+        // Skip block + file size (if any)
+        offset += 512 + size_to_skip;
+        lseek(fd, size_to_skip, SEEK_CUR);
+
+        local_tar = &(*local_tar)->next;
+
+        ++files_read;
     }
-
-    unpopulate_block(tar);    
-    tar->data_begin_ind = offset;
-
+    return files_read;
 }
 
 int my_file_read(int fd, char *src, int src_sz)
@@ -197,4 +272,21 @@ int octal_to_decimal(char *src)
     }
 
     return decimal_sum;
+}
+
+bool is_block_all_zeros(char *src, int src_sz)
+{
+    for (int i = 0; i < src_sz; ++i)
+    {
+        if(src[i] != '\0')
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+int my_tar_extract(int fd, struct my_tar_type **tar)
+{
+    
 }

@@ -26,7 +26,7 @@ int main( int argc, const char* argv[] )
 
     const int fd = open(filename, O_RDONLY);
 
-    struct my_tar_type *tar = create_tar_ptr();
+    struct my_tar_type **tar = create_tar_double_ptr();
 
     // struct stat my_stat;
     // int success = stat(test_file, &my_stat);
@@ -56,7 +56,8 @@ int main( int argc, const char* argv[] )
 
     // int tr = write(fd, tar->block, 512);
 
-    my_tar_read(fd, tar);
+    int num_files_read = my_tar_read(fd, tar);
+    printf("Number of files read %d\n", num_files_read);
 
     //write(1, tar->block, 512);
     //printf("\n%s\n", tar->name);
@@ -70,6 +71,6 @@ int main( int argc, const char* argv[] )
 
     close(fd);
 
-    free(tar);
+    free_tar_double_ptr(tar);
     return 0;
 }
