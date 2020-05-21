@@ -99,4 +99,5 @@ int octal_to_decimal(char *src);
 bool is_block_all_zeros(char *src, int src_sz);
 
 
-int my_tar_extract(int fd, struct my_tar_type **tar);
+int my_tar_extract(int fd, struct my_tar_type *tar);
+int my_file_extract(int fd, struct my_tar_type *tar);

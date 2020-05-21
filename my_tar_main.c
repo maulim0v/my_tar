@@ -1,5 +1,6 @@
 #include "my_tar_main.h"
 
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -286,7 +287,72 @@ bool is_block_all_zeros(char *src, int src_sz)
     return true;
 }
 
-int my_tar_extract(int fd, struct my_tar_type **tar)
+int my_tar_extract(int fd, struct my_tar_type *tar)
 {
-    
+    // Set file reading to the beginning for tar file
+    lseek(fd, 0, SEEK_SET);
+
+    int files_extracted = 0;
+    while(tar != NULL)
+    {
+        // Do something
+        my_file_extract(fd, tar);
+
+        tar = tar->next;
+        ++files_extracted;
+    }
+
+    return files_extracted;
+}
+
+int my_file_extract(int fd, struct my_tar_type *tar)
+{
+    if (tar->typeflag == NORMAL_FILE)
+    {
+        const int file_sz = octal_to_decimal(tar->size);
+        const int file_mode = octal_to_decimal(tar->mode) & 0777;
+
+        const int file_fd = open(tar->name, O_WRONLY | O_CREAT | O_TRUNC, file_mode);
+        const int seek_move_to_read = 512 + tar->data_begin_ind;
+
+        // Move current offset (seek) for reading from original tar file
+        lseek(fd, seek_move_to_read, SEEK_SET);
+
+        char buff_read[512];
+        int sz_read_and_write = 0;
+
+        // To handle when size is way larger than 512 bytes
+        while(true)
+        {
+            int sz_read = file_sz - sz_read_and_write;
+            if (sz_read > 512)
+            {
+                sz_read = 512;
+            }
+            else if (sz_read <= 0)
+            {
+                break;
+            }
+
+            const int sz_read_ret = my_file_read(fd, buff_read, sz_read);
+            if (sz_read_ret < 0)
+            {
+                my_str_write(1, "Reading from tar failed! Breaking extracting ...\n");
+                break;
+            }
+
+            const int sz_written_ret = write(file_fd, buff_read, sz_read_ret);
+            if (sz_written_ret != sz_read_ret)
+            {
+                my_str_write(1, "Reading size not equals to writing sz to file! Breaking extracting ...\n");
+                break;
+            }
+
+            sz_read_and_write += sz_written_ret;
+        }
+
+        close(file_fd);
+    }
+
+    return 0;
 }
