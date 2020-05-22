@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 struct my_tar_type* create_tar_ptr()
@@ -307,6 +308,11 @@ int my_tar_extract(int fd, struct my_tar_type *tar)
 
 int my_file_extract(int fd, struct my_tar_type *tar)
 {
+    if (tar->typeflag == DIRECTORY)
+    {
+        int mode_dir = octal_to_decimal(tar->mode) & 0777;
+        my_mkdir(tar->name, mode_dir);
+    }
     if (tar->typeflag == NORMAL_FILE)
     {
         const int file_sz = octal_to_decimal(tar->size);
@@ -354,5 +360,48 @@ int my_file_extract(int fd, struct my_tar_type *tar)
         close(file_fd);
     }
 
+    return 0;
+}
+
+int my_mkdir(char *dir, int mode)
+{
+    const size_t path_len = my_str_len(dir);
+    if (path_len < 1)
+    {
+        return 0;
+    }
+
+    char *path = (char *) malloc ( (path_len + 1) * sizeof(char));
+    for(int i = 0; i < path_len; ++i)
+    {
+        if (i == path_len - 1)
+        {
+            if (dir[i] == '/')
+            {
+                path[i] = '\0';
+            }
+        }
+        else 
+        { 
+            path[i] = dir[i];
+        }
+
+        if (i == path_len - 1)
+        {
+            int mkdir_int = mkdir(path, mode);
+            //printf("Dir name %s, Mkdir int %d\n", path, mkdir_int);
+        }
+        else if (path[i] == '/')
+        {
+            path[i] = '\0';
+
+            int mkdir_int = mkdir(path, mode);
+            //printf("Dir name %s, Mkdir int %d\n", path, mkdir_int);
+            path[i] = '/';
+        }
+    }
+    path[path_len] = '\0';
+
+    free(path);
     return 0;
 }
