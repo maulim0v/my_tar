@@ -405,3 +405,24 @@ int my_mkdir(char *dir, int mode)
     free(path);
     return 0;
 }
+
+int my_tar_print(struct my_tar_type *tar)
+{
+    int files_printed = 0;
+    while(tar != NULL)
+    {
+        my_file_print(tar);
+
+        tar = tar->next;
+        ++files_printed;
+    }
+
+    return files_printed;
+}
+
+int my_file_print(struct my_tar_type *tar)
+{
+    my_str_write(1, tar->name);
+    my_str_write(1, "\n");
+    return 0;
+}

@@ -63,6 +63,8 @@ int main( int argc, const char* argv[] )
     int num_files_extracted = my_tar_extract(fd, *tar);
     printf("Number of files extracted %d\n", num_files_extracted);
 
+    my_tar_print(*tar);
+
     //write(1, tar->block, 512);
     //printf("\n%s\n", tar->name);
     //printf("%s\n", tar->mode);

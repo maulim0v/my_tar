@@ -102,3 +102,6 @@ bool is_block_all_zeros(char *src, int src_sz);
 int my_tar_extract(int fd, struct my_tar_type *tar);
 int my_file_extract(int fd, struct my_tar_type *tar);
 int my_mkdir(char *dir, int mode);
+
+int my_tar_print(struct my_tar_type *tar);
+int my_file_print(struct my_tar_type *tar);
