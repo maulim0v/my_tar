@@ -3,19 +3,19 @@
 #include <stddef.h>
 
 /* POSIX header constants */
-#define NAME_MAX_ELEMENT 100                 // 100
-#define MODE_MAX_ELEMENT 8                   // 108
-#define UID_MAX_ELEMENT 8                    // 116
-#define GID_MAX_ELEMENT 8                    // 124
-#define SIZE_MAX_ELEMENT 12                  // 136
-#define MTIME_MAX_ELEMENT 12                 // 148  
-#define CHKSUM_MAX_ELEMENT 8                 // 156  
-#define LINKNAME_MAX_ELEMENT 100             // 256      
+#define NAME_MAX_ELEMENT 100                
+#define MODE_MAX_ELEMENT 8                  
+#define UID_MAX_ELEMENT 8                   
+#define GID_MAX_ELEMENT 8                   
+#define SIZE_MAX_ELEMENT 12                 
+#define MTIME_MAX_ELEMENT 12                  
+#define CHKSUM_MAX_ELEMENT 8                  
+#define LINKNAME_MAX_ELEMENT 100                  
 
 /* UStar format header constants */
-#define SEVERAL_OLD_FIELDS_MAX_ELEMENT 156   // 156
-#define ALSO_LINK_NAME_MAX_ELEMENT 100       // 256
-#define USTAR_MAX_ELEMENT 8                  // 
+#define SEVERAL_OLD_FIELDS_MAX_ELEMENT 156   
+#define ALSO_LINK_NAME_MAX_ELEMENT 100       
+#define USTAR_MAX_ELEMENT 8                  
 #define OWNER_MAX_ELEMENT 32
 #define GROUP_MAX_ELEMENT 32
 #define MAJOR_MAX_ELEMENT 8
@@ -42,14 +42,14 @@ struct my_tar_type
     char size[SIZE_MAX_ELEMENT];             
     char mtime[MTIME_MAX_ELEMENT];            
     char chksum[CHKSUM_MAX_ELEMENT];            
-    //char link;             
+    char typeflag;             
     //char linkname[LINKNAME_MAX_ELEMENT]; 
     /// @}
 
     /* UStar format */
     /// @{
     //char several_old_fields[SEVERAL_OLD_FIELDS_MAX_ELEMENT];             
-    char typeflag;                  
+    //char typeflag;                  
     //char also_link_name[ALSO_LINK_NAME_MAX_ELEMENT];  
     //char ustar[USTAR_MAX_ELEMENT];              
     //char owner[OWNER_MAX_ELEMENT];           
