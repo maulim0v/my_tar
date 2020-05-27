@@ -22,10 +22,12 @@ int main( int argc, const char* argv[] )
         files[i - 3] = argv[i];
     }
 
-    const char *test_file = files[0];
+    //const char *test_file = files[0];
 
-    const int fd = open(filename, O_RDONLY);
+    //const int fd = open(filename, O_RDONLY);
 
+
+    int fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
     struct my_tar_type **tar = create_tar_double_ptr();
 
     // struct stat my_stat;
@@ -56,14 +58,26 @@ int main( int argc, const char* argv[] )
 
     // int tr = write(fd, tar->block, 512);
 
-    int num_files_read = my_tar_read(fd, tar);
-    printf("Number of files read %d\n", num_files_read);
+
+    my_tar_write(fd, tar, files, num_files);
 
 
-    int num_files_extracted = my_tar_extract(fd, *tar);
-    printf("Number of files extracted %d\n", num_files_extracted);
 
-    my_tar_print(*tar);
+
+    //int num_files_read = my_tar_read(fd, tar);
+    //printf("Number of files read %d\n", num_files_read);
+
+
+    //int num_files_extracted = my_tar_extract(fd, *tar);
+    //printf("Number of files extracted %d\n", num_files_extracted);
+
+    //my_tar_print(*tar);
+
+
+
+
+
+
 
     //write(1, tar->block, 512);
     //printf("\n%s\n", tar->name);

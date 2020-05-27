@@ -31,11 +31,9 @@ void free_tar_double_ptr(struct my_tar_type **tar)
         return;
     }
 
-    printf("I am here\n");
     struct my_tar_type *tmp;
     while(*tar != NULL)
     {
-        printf("I am here 111\n");
         tmp = *tar;
         *tar = (*tar)->next;
         free_tar_ptr(tmp);
@@ -424,5 +422,170 @@ int my_file_print(struct my_tar_type *tar)
 {
     my_str_write(1, tar->name);
     my_str_write(1, "\n");
+    return 0;
+}
+
+int my_tar_write(int fd, struct my_tar_type **tar, const char *files[], int num_files)
+{
+    long unsigned offset = 0;
+
+    my_file_write(fd, tar, files, num_files, &offset);
+
+    my_tar_write_end(fd, offset);
+
+    return offset;
+}
+
+int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num_files, long unsigned *offset_ptr)
+{
+    struct my_tar_type **local_tar = tar;
+
+    for (int i = 0; i < num_files; ++i)
+    {
+        *local_tar = create_tar_ptr();
+        int format_success = my_file_format(*local_tar, files[i]);
+        if (format_success < 0)
+        {
+            break;
+        }
+
+        (*local_tar)->data_begin_ind = *offset_ptr;
+
+        if ((*local_tar)->typeflag == NORMAL_FILE)
+        {
+            // First write block header metadata into tar file
+            const int sz_written_ret = write(fd, (*local_tar)->block, 512);
+            if (sz_written_ret != 512)
+            {
+                my_str_write(1, "Tar writing size not equals to block size 512! Breaking tar writing ...\n");
+                break;
+            }
+
+            // Next write each file contents into tar file
+            char buff_read[512];
+            int sz_read_and_write = 0;
+            int file_sz = octal_to_decimal((*local_tar)->size);
+            
+            int file_desc = open((*local_tar) -> name, O_RDONLY);
+
+            // To handle when size is way larger than 512 bytes
+            while(true)
+            {
+                int sz_read = file_sz - sz_read_and_write;
+                if (sz_read > 512)
+                {
+                    sz_read = 512;
+                }
+                else if (sz_read <= 0)
+                {
+                    break;
+                }
+
+                const int sz_read_ret = my_file_read(file_desc, buff_read, sz_read);
+                if (sz_read_ret < 0)
+                {
+                    my_str_write(1, "Reading from file failed! Breaking tar writing ...\n");
+                    my_str_write(1, (*local_tar)->name);
+                    my_str_write(1, " file failed! Breaking tar writing ...\n");
+                    return -1;
+                }
+
+                const int sz_written_ret = write(fd, buff_read, sz_read_ret);
+                if (sz_written_ret != sz_read_ret)
+                {
+                    my_str_write(1, "Reading size not equals to writing sz to file! Breaking tar writing for ");
+                    my_str_write(1, (*local_tar)->name);
+                    my_str_write(1, " file ...\n");
+                    return -1;
+                }
+
+                sz_read_and_write += sz_written_ret;
+            }
+
+            close(file_desc);
+
+            // Fill the remaining spot with all zeros
+            int size_to_fill_with_zeros = file_sz;
+            const int rem = size_to_fill_with_zeros % 512;
+            if (rem != 0)
+            {
+                size_to_fill_with_zeros = 512 - rem;
+                for (int i = 0; i < size_to_fill_with_zeros; ++i)
+                {
+                    write(fd, "\0", 1);
+                }
+                *offset_ptr += size_to_fill_with_zeros;
+            }
+
+            // Update offset properly (block + file size)
+            *offset_ptr += (file_sz + 512);
+        }
+        else if ((*local_tar)->typeflag == DIRECTORY)
+        {
+            
+        }
+
+        (*local_tar)->next = NULL;
+        local_tar = &(*local_tar)->next;
+    }
+    return 0;
+}
+
+int my_file_format(struct my_tar_type *tar, const char *file_name)
+{
+    int file_description = open(file_name, O_RDONLY);
+    if (file_description < 0)
+    {
+        my_str_write(1, "Error opening ");
+        my_str_write(1, file_name);
+        my_str_write(1, " file, Returning from my_file_format!...\n");
+        return -1;
+    }
+
+    struct stat file_st;
+    int success_stat = fstat(file_description, &file_st);
+    if (success_stat < 0)
+    {
+        my_str_write(1, "Failed to stat ");
+        my_str_write(1, file_name);
+        my_str_write(1, " file, Returning from my_file_format!...\n");
+        return -1;
+    }
+
+    my_str_copy(tar->name, file_name);
+    decimal_to_octal(tar->mode, file_st.st_mode & 0777, 7);
+    decimal_to_octal(tar->uid, file_st.st_uid, 7);
+    decimal_to_octal(tar->gid, file_st.st_gid, 7);
+    decimal_to_octal(tar->size, (int)file_st.st_size, 11);
+    decimal_to_octal(tar->mtime, (int)file_st.st_mtime, 11);
+
+    if (S_ISREG(file_st.st_mode) == true)
+    {
+        tar->typeflag = NORMAL_FILE;
+    }
+    else if (S_ISDIR(file_st.st_mode) == true)
+    {
+        init_char_array(tar->size, SIZE_MAX_ELEMENT - 1, '0');
+        tar->typeflag = DIRECTORY;
+    }
+    
+    // -9 is offset backwards for checksum
+    int str_ind = populate_block(tar) - 9;
+    decimal_to_octal(tar->chksum, get_tar_checksum(tar), 6);
+    tar->chksum[6] = '\0';
+    tar->chksum[7] = ' ';
+    my_full_str_copy(tar->block, &str_ind, tar->chksum, CHKSUM_MAX_ELEMENT);
+
+    close(file_description);
+    return 0;
+}
+
+int my_tar_write_end(int fd, int offset)
+{
+    for (int i = 0; i < 2 * BLOCK_MAX_ELEMENT; ++i)
+    {
+        write(fd, "\0", 1);
+    }
+
     return 0;
 }

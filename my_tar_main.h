@@ -105,3 +105,10 @@ int my_mkdir(char *dir, int mode);
 
 int my_tar_print(struct my_tar_type *tar);
 int my_file_print(struct my_tar_type *tar);
+
+
+
+int my_tar_write(int fd, struct my_tar_type **tar, const char *files[], int num_files);
+int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num_files, long unsigned *offset_ptr);
+int my_tar_write_end(int fd, int offset);
+int my_file_format(struct my_tar_type *tar, const char *file_name);
