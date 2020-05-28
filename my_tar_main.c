@@ -566,12 +566,6 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
                     if (my_file_write(fd, &((*local_tar) -> next), (const char **) &path,1, offset_ptr) < 0){
                         printf("Recurse error");
                     }
-
-                    // go to end of new data
-                    // while ((*local_tar) -> next){
-                    //     local_tar = &((*local_tar) -> next);
-                    // }
-
                     free(path);
                 }
             }
@@ -579,7 +573,7 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
 
             free(parent);
 
-            tar = &((*tar) -> next);
+         //   local_tar = &((*local_tar) -> next);
 
         }
 
