@@ -1,6 +1,8 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <dirent.h>
+#include <fcntl.h>
 
 /* POSIX header constants */
 #define NAME_MAX_ELEMENT 100                

@@ -5,6 +5,10 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <strings.h>
+#include <stdio.h>
+#include <string.h>
+
 
 struct my_tar_type* create_tar_ptr()
 {
@@ -522,7 +526,61 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
         }
         else if ((*local_tar)->typeflag == DIRECTORY)
         {
-            
+            //-------------------------------------------------------------------------------------------------------------------------
+        
+            int len_dirname = my_str_len((*local_tar) -> name);
+            char  * parent = calloc(len_dirname + 1, sizeof(char));
+            my_str_copy(parent, (*local_tar) -> name);
+
+            // add a '/' character to the end
+            if ((len_dirname < 99) && ((*local_tar) -> name[len_dirname - 1] != '/')){
+                (*local_tar) -> name[len_dirname] = '/';
+                (*local_tar) -> name[len_dirname + 1] = '\0';
+                get_tar_checksum(*tar);
+            }
+
+            fprintf(stdout, "Writing %s", (*local_tar) -> name);
+
+             const int sz_written_ret = write(fd, (*local_tar)->block, 512);
+            if (sz_written_ret != 512)
+            {
+                my_str_write(1, "Tar writing size not equals to block size 512! Breaking tar writing ...\n");
+                break;
+            }
+
+            // directory
+            DIR * d = opendir(parent);
+            if (!d){
+                printf("Cannot open directory %s", parent);
+            }
+
+            struct dirent * dir;
+            while ((dir = readdir(d))){
+                // if not special directories . and ..
+                int sublen = my_str_len(dir -> d_name);
+                if (strncmp(dir -> d_name, ".", sublen) && strncmp(dir -> d_name, "..", sublen)){
+                    char * path = calloc(len_dirname + sublen + 2, sizeof(char));
+                    sprintf(path, "%s/%s", parent, dir -> d_name);
+
+                    // recursively write each subdirectory
+                    if (my_file_write(fd, &((*local_tar) -> next), (const char **) &path,1, offset_ptr) < 0){
+                        printf("Recurse error");
+                    }
+
+                    // go to end of new data
+                    // while ((*local_tar) -> next){
+                    //     local_tar = &((*local_tar) -> next);
+                    // }
+
+                    free(path);
+                }
+            }
+            closedir(d);
+
+            free(parent);
+
+            tar = &((*tar) -> next);
+
         }
 
         (*local_tar)->next = NULL;

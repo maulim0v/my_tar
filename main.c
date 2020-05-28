@@ -60,6 +60,7 @@ int main( int argc, const char* argv[] )
 
 
     my_tar_write(fd, tar, files, num_files);
+  
 
 
 
@@ -89,7 +90,7 @@ int main( int argc, const char* argv[] )
     //printf("%s\n", tar->chksum);
     //rintf("%c\n", tar->typeflag);
 
-    close(fd);
+    //close(fd);
 
     free_tar_double_ptr(tar);
     return 0;
