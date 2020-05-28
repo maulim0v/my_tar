@@ -79,9 +79,11 @@ void my_str_write(int fd, const char *str);
 size_t my_str_len(const char *str);
 int my_int_max(int left, int right);
 int my_int_min(int left, int right);
+int my_str_compare(const char *left, const char *right);
 
 void my_str_copy(char *dest, const char *src);
 void my_full_str_copy(char *dest, int *dest_str_ind, const char *src, size_t src_sz);
+
 
 
 void decimal_to_octal(char *dest, int input, int placeholder);
