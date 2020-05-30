@@ -711,49 +711,60 @@ void my_str_copy_new(char *dest, char *src)
 
 void  my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int num_files)
 {
-    char ** buffer_for_update = (char **) malloc((num_files+1)*sizeof(char *));
+    // char ** buffer_for_update = (char **) malloc((num_files+1)*sizeof(char *));
     struct stat st;
     int num_new = 0;
-    
+    struct my_tar_type **local_tar = tar;
     // check each source to see if it was updated
     struct my_tar_type * mytar = *tar;
     for(int i = 0; i < num_files; i++){
+         printf("file name[%d]: %s\n",i,files[i] );
         // make sure original file exists
-        if (lstat(files[i], &st)){
-            my_str_write(1,"Problem with stat of this file");
-        }
+        // if (lstat(files[i], &st)){
+        //     my_str_write(1,"Problem with stat of this file");
+        // }
            // find the file in the archive
-        struct my_tar_type * find_tar = find(mytar, files[i]);
-        buffer_for_update[num_new] = (char *) malloc((my_str_len(files[i]) + 1)* sizeof(char));
+            *local_tar = create_tar_ptr();
+            *local_tar  =  find(mytar, files[i]);
+         if (local_tar){     printf("find_tar name: %s\n", (*local_tar)->name);} else {
+             printf("Find is NULL\n"); 
+         }
+    
+      //  printf("find_tar name: %d\n",find_tar->typeflag );
+        // buffer_for_update[num_new] = (char *) malloc((my_str_len(files[i]) + 1)* sizeof(char));
 
-         if (find_tar){
-            if (st.st_mtime > octal_to_decimal(find_tar -> mtime)){
-                strncpy(buffer_for_update[num_new++], files[i], my_str_len(files[i]));
-                // my_str_copy_new(stdout, files[i]);
-            }
-        } else{
-            strncpy(buffer_for_update[num_new++],files[i], my_str_len(files[i]));
-            // my_str_copy_new(stdout, files[i]);
-        }
+        //  if (find_tar){
+        //     if (st.st_mtime > octal_to_decimal(find_tar -> mtime)){
+        //         strncpy(buffer_for_update[num_new++], files[i], my_str_len(files[i]));
+        //         // my_str_copy_new(stdout, files[i]);
+        //     }
+        // } else{
+        //     strncpy(buffer_for_update[num_new++],files[i], my_str_len(files[i]));
+        //     // my_str_copy_new(stdout, files[i]);
+        // }
+      free_tar_ptr(*local_tar);
+                *local_tar = NULL;
     }
+       
 
     // update listed files only
-    my_tar_write(fd, tar, (const char **) buffer_for_update, num_new);
-    // cleanup
-    for(int i = 0; i < num_new; i++){
-        free(buffer_for_update[i]);
-    }
-    free(buffer_for_update);
+    // my_tar_write(fd, tar, (const char **) buffer_for_update, num_new);
+    // // cleanup
+    // for(int i = 0; i < num_new; i++){
+    //     free(buffer_for_update[i]);
+    // }
+    //  free(find_tar);
 
 }
 
 struct my_tar_type * find(struct my_tar_type * tar, const char * filename){
+    printf("from FIND: filename:%s\n", filename);
     while (tar){
-            if (!my_str_compare(tar -> name, filename)) {
+            if (my_str_compare(tar -> name, filename)==1) {
                 return tar;
             }
         
-        tar = tar -> next;
+       tar = tar -> next;
     }
     return NULL;
 }
