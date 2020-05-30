@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -721,7 +722,19 @@ void  my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int n
         if (lstat(files[i], &st)){
             my_str_write(1,"Problem with stat of this file");
         }
+           // find the file in the archive
+        struct my_tar_type * find_tar = find(mytar, files[i]);
+        buffer_for_update[num_new] = (char *) malloc((my_str_len(files[i]) + 1)* sizeof(char));
 
+         if (find_tar){
+            if (st.st_mtime > octal_to_decimal(find_tar -> mtime)){
+                strncpy(buffer_for_update[num_new++], files[i], my_str_len(files[i]));
+                // my_str_copy_new(stdout, files[i]);
+            }
+        } else{
+            strncpy(buffer_for_update[num_new++],files[i], my_str_len(files[i]));
+            // my_str_copy_new(stdout, files[i]);
+        }
     }
 
     // update listed files only
@@ -732,4 +745,15 @@ void  my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int n
     }
     free(buffer_for_update);
 
+}
+
+struct my_tar_type * find(struct my_tar_type * tar, const char * filename){
+    while (tar){
+            if (!my_str_compare(tar -> name, filename)) {
+                return tar;
+            }
+        
+        tar = tar -> next;
+    }
+    return NULL;
 }
