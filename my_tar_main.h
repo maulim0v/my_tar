@@ -114,3 +114,4 @@ int my_tar_write_end(int fd, int offset);
 int my_file_format(struct my_tar_type *tar, const char *file_name);
 int my_str_compare(const char *left, const char *right);
 void my_str_copy_new(char *dest, char *src);
+void my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int num_files);

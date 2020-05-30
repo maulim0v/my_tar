@@ -98,7 +98,7 @@ int main( int argc, const char* argv[] )
         {
             const int fd = open(filename, O_RDWR);
             int num_files_read = my_tar_read(fd, tar);
-            //my_tar_update(fd, tar, files, num_files);
+            my_tar_update(fd, tar, files, num_files);
             close(fd);
         }
         else if (x == 1)

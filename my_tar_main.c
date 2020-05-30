@@ -707,3 +707,29 @@ void my_str_copy_new(char *dest, char *src)
     }
     dest[dest_sz + src_sz] = '\0';
 }
+
+void  my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int num_files)
+{
+    char ** buffer_for_update = (char **) malloc((num_files+1)*sizeof(char *));
+    struct stat st;
+    int num_new = 0;
+    
+    // check each source to see if it was updated
+    struct my_tar_type * mytar = *tar;
+    for(int i = 0; i < num_files; i++){
+        // make sure original file exists
+        if (lstat(files[i], &st)){
+            my_str_write(1,"Problem with stat of this file");
+        }
+
+    }
+
+    // update listed files only
+    my_tar_write(fd, tar, (const char **) buffer_for_update, num_new);
+    // cleanup
+    for(int i = 0; i < num_new; i++){
+        free(buffer_for_update[i]);
+    }
+    free(buffer_for_update);
+
+}
