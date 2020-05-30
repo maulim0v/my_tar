@@ -727,12 +727,17 @@ void  my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int n
            // find the file in the archive
           //  *local_tarr = create_tar_ptr();
            // *local_tarr  =  find(mytar, files[i]);
-         if (local_tarr){     
+         if (local_tarr && my_str_compare(files[i], (*local_tarr)->name)==1) {     
              printf("find_tar name: %s\n", (*local_tarr)->name);
                printf("find_tar TIME: %d\n",octal_to_decimal((*local_tarr)->mtime));
+              
                printf("st.st_mtime : %ld\n", st.st_mtime );
+                if (st.st_mtime >octal_to_decimal((*local_tarr)->mtime) ) {
+                    printf("This file has a modification date newer than the corresponding entry in the archive, so it should be added\n");
+                }
              } else {
              printf("Find is NULL\n"); 
+             printf("This is new file and should be added!\n");
          }
     
       //  printf("find_tar name: %d\n",find_tar->typeflag );
