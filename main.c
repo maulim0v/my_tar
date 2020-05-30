@@ -1,9 +1,10 @@
-
 #include "my_tar_main.h"
 
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <unistd.h>
+
 
 int main( int argc, const char* argv[] )
 {
@@ -12,6 +13,53 @@ int main( int argc, const char* argv[] )
         my_str_write(1, "Not enough input! Exiting...\n");
         return 1;
     }
+
+    const char *flags = argv[1];
+    int c = 0;
+    int r = 0;
+    int t = 0;
+    int u = 0;
+    int x = 0;
+
+    int f = 0;
+    int C = 0;
+
+    for(int i = 0; i < my_str_len(flags); ++i)
+    {
+        if (flags[i] == '-')
+        {
+            continue;
+        }
+        else if (flags[i] == 'c')
+        {
+            c = 1;
+        }
+        else if (flags[i] == 'r')
+        {
+            r = 1;
+        }
+        else if (flags[i] == 't')
+        {
+            t = 1;
+        }
+        else if (flags[i] == 'u')
+        {
+            u = 1;
+        }
+        else if (flags[i] == 'x')
+        {
+            x = 1;
+        }
+        else if (flags[i] == 'f')
+        {
+            f = 1;
+        }
+        else
+        {
+            my_str_write(1, "Unknown input flag is specified! Stopping tar ...\n");
+            return 1;
+        }
+    }   
 
     int num_files = my_int_max(argc - 3, 0);
 
@@ -22,75 +70,54 @@ int main( int argc, const char* argv[] )
         files[i - 3] = argv[i];
     }
 
-    //const char *test_file = files[0];
+    struct my_tar_type **tar = create_tar_double_ptr();    
 
-    //const int fd = open(filename, O_RDONLY);
+    if (f == 1)
+    {
+        if (c == 1)
+        {
+            int fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
+            my_tar_write(fd, tar, files, num_files);
+            close(fd);
+        }
+        else if (r == 1)
+        {
+            const int fd = open(filename, O_RDWR);
+            int num_files_read = my_tar_read(fd, tar);
+            my_tar_write(fd, tar, files, num_files);
+            close(fd);
+        }
+        else if (t == 1)
+        {
+            const int fd = open(filename, O_RDWR);
+            int num_files_read = my_tar_read(fd, tar);
+            my_tar_print(*tar);
+            close(fd);
+        }
+        else if (u == 1)
+        {
+            const int fd = open(filename, O_RDWR);
+            int num_files_read = my_tar_read(fd, tar);
+            //my_tar_update(fd, tar, files, num_files);
+            close(fd);
+        }
+        else if (x == 1)
+        {
+            const int fd = open(filename, O_RDWR);
+            int num_files_read = my_tar_read(fd, tar);
+            int num_files_extracted = my_tar_extract(fd, *tar);
+            close(fd);
+        }
+        else
+        {
 
-
-    int fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
-    struct my_tar_type **tar = create_tar_double_ptr();
-
-    // struct stat my_stat;
-    // int success = stat(test_file, &my_stat);
-
-    // my_str_copy(tar->name, test_file);
-    // decimal_to_octal(tar->mode, my_stat.st_mode & 0777, 7);
-    // decimal_to_octal(tar->uid, my_stat.st_uid, 7);
-    // decimal_to_octal(tar->gid, my_stat.st_gid, 7);
-    // decimal_to_octal(tar->size, (int)my_stat.st_size, 11);
-    // decimal_to_octal(tar->mtime, (int)my_stat.st_mtime, 11);
-
-    // if ((my_stat.st_mode & S_IFMT) == S_IFREG)
-    // {
-    //     tar->typeflag = NORMAL_FILE;
-    // }
-    // else if ((my_stat.st_mode & S_IFMT) == S_IFDIR)
-    // {
-    //     init_char_array(tar->size, SIZE_MAX_ELEMENT - 1, '0');
-    //     tar->typeflag = DIRECTORY;
-    // }
+        }
+    }
+    else
+    {
+        my_str_write(1, "No -f is specified! Stopping ...\n");
+    }
     
-    // int str_ind = populate_block(tar) - 9;
-    // decimal_to_octal(tar->chksum, get_tar_checksum(tar), 6);
-    // tar->chksum[6] = '\0';
-    // tar->chksum[7] = ' ';
-    // my_full_str_copy(tar->block, &str_ind, tar->chksum, CHKSUM_MAX_ELEMENT);
-
-    // int tr = write(fd, tar->block, 512);
-
-
-    my_tar_write(fd, tar, files, num_files);
-  
-
-
-
-
-    //int num_files_read = my_tar_read(fd, tar);
-    //printf("Number of files read %d\n", num_files_read);
-
-
-    //int num_files_extracted = my_tar_extract(fd, *tar);
-    //printf("Number of files extracted %d\n", num_files_extracted);
-
-    //my_tar_print(*tar);
-
-
-
-
-
-
-
-    //write(1, tar->block, 512);
-    //printf("\n%s\n", tar->name);
-    //printf("%s\n", tar->mode);
-    //printf("%s\n", tar->uid);
-    //printf("%s\n", tar->gid);
-    //printf("%s\n", tar->size);
-    //printf("%s\n", tar->mtime);
-    //printf("%s\n", tar->chksum);
-    //rintf("%c\n", tar->typeflag);
-
-    //close(fd);
 
     free_tar_double_ptr(tar);
     return 0;

@@ -1,18 +1,17 @@
 #include "my_tar_main.h"
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
-#include <strings.h>
-#include <stdio.h>
-#include <string.h>
-
 
 struct my_tar_type* create_tar_ptr()
 {
     struct my_tar_type *tar = (struct my_tar_type *)malloc(sizeof(struct my_tar_type));
+    tar->next = NULL;
     init_tar_ptr(tar);
     return tar;
 }
@@ -25,6 +24,7 @@ void free_tar_ptr(struct my_tar_type *tar)
 struct my_tar_type** create_tar_double_ptr()
 {
     struct my_tar_type **ret = (struct my_tar_type **) malloc (sizeof(struct my_tar_type *));
+    *ret = NULL;
     return ret;
 }
 
@@ -119,38 +119,6 @@ void my_full_str_copy(char *dest, int *dest_str_ind, const char *src, size_t src
         dest[str_ind + i] = src[i];
     }
     *dest_str_ind = str_ind + i;
-}
-
-void my_str_copy_new(char *dest, char *src)
-{
-int dest_sz = my_str_len(dest);
-int src_sz = my_str_len(src);
-
-for (int i = 0; i < src_sz; ++i)
-{
-    dest[dest_sz + i] = src[i];
-}
-dest[dest_sz + src_sz] = '\0';
-}
-
-int my_str_compare(const char *left, const char *right)
-{
-int left_sz = my_str_len(left);
-int right_sz = my_str_len(right);
-
-if (left_sz != right_sz)
-{
-    return 0;
-}
-
-for (int i = 0; i < left_sz; ++i)
-{
-    if (left[i] != right[i])
-    {
-        return 0;
-    }
-}
-return 1;
 }
 
 void decimal_to_octal(char *dest, int input, int placeholder)
@@ -465,6 +433,29 @@ int my_tar_write(int fd, struct my_tar_type **tar, const char *files[], int num_
 {
     long unsigned offset = 0;
 
+    // After tar_reading we need to adjust things around
+    if (*tar != NULL)
+    {
+        // Go to the last element
+        while(*tar != NULL && (*tar)->next != NULL)
+        {
+            tar = &(*tar)->next;
+        }
+
+        int size_to_skip = octal_to_decimal((*tar)->size);
+        const int rem_to_skip = size_to_skip % 512;
+        if (rem_to_skip != 0)
+        {
+            size_to_skip += 512 - rem_to_skip;
+        }
+
+        // Skip everything up until the past last element
+        offset += (*tar)->data_begin_ind + size_to_skip + 512;
+        lseek(fd, offset, SEEK_SET);
+
+        tar = &(*tar)->next;
+    }
+
     my_file_write(fd, tar, files, num_files, &offset);
 
     my_tar_write_end(fd, offset);
@@ -558,60 +549,66 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
         }
         else if ((*local_tar)->typeflag == DIRECTORY)
         {
-            //-------------------------------------------------------------------------------------------------------------------------
-        
-            int len_dirname = my_str_len((*local_tar) -> name);
-            char * parent = calloc(len_dirname + 1, sizeof(char));
-            my_str_copy(parent, (*local_tar) -> name);
+            printf("I am here!!!\n");
 
-            // add a '/' character to the end
-            if ((len_dirname < 99) && ((*local_tar) -> name[len_dirname - 1] != '/')){
-                (*local_tar) -> name[len_dirname] = '/';
-                (*local_tar) -> name[len_dirname + 1] = '\0';
-                decimal_to_octal((*local_tar)->chksum, get_tar_checksum(*local_tar), 6);
-                (*local_tar)->chksum[6] = '\0';
-                (*local_tar)->chksum[7] = ' ';
-            }
-
-            fprintf(stdout, "Writing %s", (*local_tar) -> name);
-
-             const int sz_written_ret = write(fd, (*local_tar)->block, 512);
+            // First write block header metadata into tar file
+            const int sz_written_ret = write(fd, (*local_tar)->block, 512);
             if (sz_written_ret != 512)
             {
                 my_str_write(1, "Tar writing size not equals to block size 512! Breaking tar writing ...\n");
                 break;
             }
-            *offset_ptr += 512;
 
-            // directory
-            DIR * d = opendir(parent);
-            if (!d){
-                my_str_write(1, "Cannot open directory...\n");
+            DIR *open_directory = opendir((*local_tar)->name);
+            if (open_directory == NULL)
+            {
+                my_str_write(1, "Could not open directory for ");
+                my_str_write(1, (*local_tar)->name);
+                my_str_write(1, " . Breaking tar writing ...\n");
+                return -1;
             }
 
-            struct dirent * dir;
-            while ((dir = readdir(d))){
-              // if not special directories . and ..
-                const size_t sublen = strlen(dir -> d_name);
-                if (strncmp(dir -> d_name, ".", sublen) && strncmp(dir -> d_name, "..", sublen)){
-                    char * path = calloc(len_dirname + sublen + 2, sizeof(char));
-                    sprintf(path, "%s/%s", parent, dir -> d_name);
+            struct dirent *dir;
+            while( (dir = readdir(open_directory)) != NULL )
+            {
+                printf("Directories!!! %s\n", dir->d_name);
 
-                    // recursively write each subdirectory
-                    if (my_file_write(fd, &((*local_tar) -> next),(const char **) &path, 1, offset_ptr) < 0){
-                        my_str_write(1,"Recurse error");
-                    }
-                                        
-                    while ((*local_tar) -> next){
-                        local_tar = &((*local_tar) -> next);
+                if ( (my_str_compare(dir->d_name, ".") != 1 ) && (my_str_compare(dir->d_name, "..") != 1 ) )
+                {
+                    printf("Am I here now?\n");
+                    char *path_and_file_name = (char *) malloc ( (my_str_len((*local_tar)->name) + my_str_len(dir->d_name) + 2) * sizeof(char) );
+                    path_and_file_name[0] = '\0';
+                    printf("Hello! %s\n", path_and_file_name);
+                    my_str_copy_new(path_and_file_name, (*local_tar)->name);
+                    printf("Hello! %s\n", path_and_file_name);
+                    my_str_copy_new(path_and_file_name, "/");
+                    printf("Hello! %s\n", path_and_file_name);
+                    my_str_copy_new(path_and_file_name, dir->d_name);
+                    
+                    const char *path_arr[1];
+                    path_arr[0] = path_and_file_name;
+                    
+                    printf("Hello! %s\n", path_and_file_name);
+
+                    int success_writing = my_file_write(fd, &(*local_tar)->next, path_arr, 1, offset_ptr);
+                    if (success_writing < 0)
+                    {
+                        my_str_write(1, "Recursive writing failed. Breaking ...\n");
+                        free(path_and_file_name);
+                        return -1;
                     }
 
-                    free(path);
+                    while( (*local_tar)->next != NULL )
+                    {
+                        local_tar = &(*local_tar)->next;
+                    }
+
+                    free(path_and_file_name);
                 }
             }
-            closedir(d);
+            closedir(open_directory);
+            *offset_ptr += 512;
 
-            free(parent);
         }
 
         (*local_tar)->next = NULL;
@@ -677,4 +674,36 @@ int my_tar_write_end(int fd, int offset)
     }
 
     return 0;
+}
+
+int my_str_compare(const char *left, const char *right)
+{
+    int left_sz = my_str_len(left);
+    int right_sz = my_str_len(right);
+
+    if (left_sz != right_sz)
+    {
+        return 0;
+    }
+
+    for (int i = 0; i < left_sz; ++i)
+    {
+        if (left[i] != right[i])
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+void my_str_copy_new(char *dest, char *src)
+{
+    int dest_sz = my_str_len(dest);
+    int src_sz = my_str_len(src);
+
+    for (int i = 0; i < src_sz; ++i)
+    {
+        dest[dest_sz + i] = src[i];
+    }
+    dest[dest_sz + src_sz] = '\0';
 }

@@ -1,8 +1,6 @@
 
 #include <stdbool.h>
 #include <stddef.h>
-#include <dirent.h>
-#include <fcntl.h>
 
 /* POSIX header constants */
 #define NAME_MAX_ELEMENT 100                
@@ -79,11 +77,9 @@ void my_str_write(int fd, const char *str);
 size_t my_str_len(const char *str);
 int my_int_max(int left, int right);
 int my_int_min(int left, int right);
-int my_str_compare(const char *left, const char *right);
 
 void my_str_copy(char *dest, const char *src);
 void my_full_str_copy(char *dest, int *dest_str_ind, const char *src, size_t src_sz);
-
 
 
 void decimal_to_octal(char *dest, int input, int placeholder);
@@ -116,3 +112,5 @@ int my_tar_write(int fd, struct my_tar_type **tar, const char *files[], int num_
 int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num_files, long unsigned *offset_ptr);
 int my_tar_write_end(int fd, int offset);
 int my_file_format(struct my_tar_type *tar, const char *file_name);
+int my_str_compare(const char *left, const char *right);
+void my_str_copy_new(char *dest, char *src);
