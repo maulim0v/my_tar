@@ -551,71 +551,73 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
         }
         else if ((*local_tar)->typeflag == DIRECTORY)
         {
-            printf("I am here!!!\n");
+           int len_dirname = my_str_len((*local_tar) -> name);
+            // char  * parent = calloc(len_dirname + 1, sizeof(char));
+            char * parent = calloc(len_dirname + 1, sizeof(char));
+            my_str_copy(parent, (*local_tar) -> name);
 
-            // First write block header metadata into tar file
+            // add a '/' character to the end
+            if ((len_dirname < 99) && ((*local_tar) -> name[len_dirname - 1] != '/')){
+                (*local_tar) -> name[len_dirname] = '/';
+                (*local_tar) -> name[len_dirname + 1] = '\0';
+                // get_tar_checksum(*tar);
+                decimal_to_octal((*local_tar)->chksum, get_tar_checksum(*local_tar), 6);
+                (*local_tar)->chksum[6] = '\0';
+                (*local_tar)->chksum[7] = ' ';
+            }
+
+            fprintf(stdout, "Writing %s", (*local_tar) -> name);
             const int sz_written_ret = write(fd, (*local_tar)->block, 512);
             if (sz_written_ret != 512)
             {
                 my_str_write(1, "Tar writing size not equals to block size 512! Breaking tar writing ...\n");
                 break;
             }
+            *offset_ptr += 512;
 
-            DIR *open_directory = opendir((*local_tar)->name);
-            if (open_directory == NULL)
-            {
-                my_str_write(1, "Could not open directory for ");
-                my_str_write(1, (*local_tar)->name);
-                my_str_write(1, " . Breaking tar writing ...\n");
-                return -1;
+
+            // directory
+            DIR * d = opendir(parent);
+            if (!d){
+                // printf("Cannot open directory %s", parent);
+                my_str_write(1, "Cannot open directory...\n");
             }
 
-            struct dirent *dir;
-            while( (dir = readdir(open_directory)) != NULL )
-            {
-                printf("Directories!!! %s\n", dir->d_name);
+            struct dirent * dir;
+            while ((dir = readdir(d))){
+                // if not special directories . and ..
+                // int sublen = my_str_len(dir -> d_name);
+              // if not special directories . and ..
+                const size_t sublen = strlen(dir -> d_name);
+                if (strncmp(dir -> d_name, ".", sublen) && strncmp(dir -> d_name, "..", sublen)){
+                    char * path = calloc(len_dirname + sublen + 2, sizeof(char));
+                    sprintf(path, "%s/%s", parent, dir -> d_name);
 
-                if ( (my_str_compare(dir->d_name, ".") != 1 ) && (my_str_compare(dir->d_name, "..") != 1 ) )
-                {
-                    printf("Am I here now?\n");
-                    char *path_and_file_name = (char *) malloc ( (my_str_len((*local_tar)->name) + my_str_len(dir->d_name) + 2) * sizeof(char) );
-                    path_and_file_name[0] = '\0';
-                    printf("Hello! %s\n", path_and_file_name);
-                    my_str_copy_new(path_and_file_name, (*local_tar)->name);
-                    printf("Hello! %s\n", path_and_file_name);
-                    my_str_copy_new(path_and_file_name, "/");
-                    printf("Hello! %s\n", path_and_file_name);
-                    my_str_copy_new(path_and_file_name, dir->d_name);
-                    
-                    const char *path_arr[1];
-                    path_arr[0] = path_and_file_name;
-                    
-                    printf("Hello! %s\n", path_and_file_name);
-
-                    int success_writing = my_file_write(fd, &(*local_tar)->next, path_arr, 1, offset_ptr);
-                    if (success_writing < 0)
-                    {
-                        my_str_write(1, "Recursive writing failed. Breaking ...\n");
-                        free(path_and_file_name);
-                        return -1;
+                    // recursively write each subdirectory
+                    // if (my_file_write(fd, &((*local_tar) -> next), (const char **) &path,1, offset_ptr) < 0){
+                    //     printf("Recurse error");
+                    if (my_file_write(fd, &((*local_tar) -> next),(const char **) &path, 1, offset_ptr) < 0){
+                        my_str_write(1,"Recurse error");
                     }
-
+                                        
                     while( (*local_tar)->next != NULL )
                     {
                         local_tar = &(*local_tar)->next;
                     }
-
-                    free(path_and_file_name);
+                    free(path);
                 }
             }
-            closedir(open_directory);
+            free(parent);
+            closedir(d);
+
             *offset_ptr += 512;
 
         }
 
-        (*local_tar)->next = NULL;
+         (*local_tar)->next = NULL;
         local_tar = &(*local_tar)->next;
-    }
+
+        }
     return 0;
 }
 
