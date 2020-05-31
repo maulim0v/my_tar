@@ -552,9 +552,8 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
         else if ((*local_tar)->typeflag == DIRECTORY)
         {
            int len_dirname = my_str_len((*local_tar) -> name);
-            // char  * parent = calloc(len_dirname + 1, sizeof(char));
-            char * parent = calloc(len_dirname + 1, sizeof(char));
-            my_str_copy(parent, (*local_tar) -> name);
+           char * parent = calloc(len_dirname + 1, sizeof(char));
+           my_str_copy(parent, (*local_tar) -> name);
 
             // add a '/' character to the end
             if ((len_dirname < 99) && ((*local_tar) -> name[len_dirname - 1] != '/')){
@@ -579,24 +578,16 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
             // directory
             DIR * d = opendir(parent);
             if (!d){
-                // printf("Cannot open directory %s", parent);
-                my_str_write(1, "Cannot open directory...\n");
+               my_str_write(1, "Cannot open directory...\n");
             }
 
             struct dirent * dir;
             while ((dir = readdir(d))){
-                // if not special directories . and ..
-                // int sublen = my_str_len(dir -> d_name);
-              // if not special directories . and ..
                 const size_t sublen = strlen(dir -> d_name);
-                if (strncmp(dir -> d_name, ".", sublen) && strncmp(dir -> d_name, "..", sublen)){
-                    char * path = calloc(len_dirname + sublen + 2, sizeof(char));
-                    sprintf(path, "%s/%s", parent, dir -> d_name);
-
-                    // recursively write each subdirectory
-                    // if (my_file_write(fd, &((*local_tar) -> next), (const char **) &path,1, offset_ptr) < 0){
-                    //     printf("Recurse error");
-                    if (my_file_write(fd, &((*local_tar) -> next),(const char **) &path, 1, offset_ptr) < 0){
+                if ((my_str_compare(dir->d_name, ".") != 1 ) && (my_str_compare(dir->d_name, "..") != 1 )){
+                    char *path_and_file_name = malloc ((len_dirname+my_str_len(dir->d_name) + 2)* sizeof(char));
+                    sprintf(path_and_file_name, "%s/%s", parent, dir -> d_name);
+                    if (my_file_write(fd, &((*local_tar) -> next),(const char **) &path_and_file_name, 1, offset_ptr) < 0){
                         my_str_write(1,"Recurse error");
                     }
                                         
@@ -604,7 +595,7 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
                     {
                         local_tar = &(*local_tar)->next;
                     }
-                    free(path);
+                    free(path_and_file_name);
                 }
             }
             free(parent);
@@ -711,6 +702,7 @@ void my_str_copy_new(char *dest, char *src)
     }
     dest[dest_sz + src_sz] = '\0';
 }
+
 
 void  my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int num_files)
 {
