@@ -727,9 +727,10 @@ void  my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int n
            // find the file in the archive
           //  *local_tarr = create_tar_ptr();
            // *local_tarr  =  find(mytar, files[i]);
-         if (local_tarr && my_str_compare(files[i], (*local_tarr)->name)==1) {     
-             printf("find_tar name: %s\n", (*local_tarr)->name);
-               printf("find_tar TIME: %d\n",octal_to_decimal((*local_tarr)->mtime));
+        //  if (local_tarr && my_str_compare(files[i], (*local_tarr)->name)==1) {     
+            if (find(*local_tarr, files[i])) {  
+                printf("find_tar name: %s\n", (*local_tarr)->name);
+                printf("find_tar TIME: %d\n",octal_to_decimal((*local_tarr)->mtime));
               
                printf("st.st_mtime : %ld\n", st.st_mtime );
                 if (st.st_mtime >octal_to_decimal((*local_tarr)->mtime) ) {
