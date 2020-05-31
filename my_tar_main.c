@@ -743,7 +743,9 @@ void  my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int n
                 }
              } else {
                 printf("This is new file and should be added!\n");
-                   new_files[0] = local_tarR->name; 
+                  
+                   new_files[0] = files[i]; 
+                //    new_files[1] = "\0"; 
                      printf("new_files: %s\n",  new_files[0]);
                      my_tar_write(fd, tar, new_files, num_files);
              }
