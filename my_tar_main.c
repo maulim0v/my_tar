@@ -717,27 +717,35 @@ void  my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int n
     int num_new = 0;
     struct my_tar_type **local_tarr = tar;
      struct my_tar_type *local_tarR;
-    // check each source to see if it was updated
-   // struct my_tar_type * mytar = *tar;
+    const char *new_files[2];
     for(int i = 0; i < num_files; i++){
          printf("file name[%d]: %s\n",i,files[i] );
+        //   new_files[0] ="\0";
         // make sure original file exists
         if (lstat(files[i], &st)){
             my_str_write(1,"Problem with stat of this file");
         }   
             if (find(*local_tarr, files[i])) {  
+                local_tarR =find(*local_tarr, files[i]);
                 printf("find_tar name: %s\n", (find(*local_tarr, files[i]))->name);
                 printf("find_tar TIME: %d\n",octal_to_decimal((find(*local_tarr, files[i]))->mtime));
               
                 printf("st.st_mtime : %ld\n", st.st_mtime );
                 if (st.st_mtime >octal_to_decimal((*local_tarr)->mtime) ) {
                     printf("This file has a modification date newer than the corresponding entry in the archive, so it should be added\n");
+                    new_files[0] = local_tarR->name; 
+                    //  new_files[1] = "\0"; 
+                     printf("new_files: %s\n",  new_files[0]);
+                     my_tar_write(fd, tar, new_files, num_files);
 
                 } else {
                     printf("Everything is up to date. No need to write\n");
                 }
              } else {
                 printf("This is new file and should be added!\n");
+                   new_files[0] = local_tarR->name; 
+                     printf("new_files: %s\n",  new_files[0]);
+                     my_tar_write(fd, tar, new_files, num_files);
              }
 
     }
@@ -746,10 +754,10 @@ void  my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int n
 }
 
 struct my_tar_type * find(struct my_tar_type * tar, const char * filename){
-    printf("from FIND: filename:%s\n", filename);
+    // printf("from FIND: filename:%s\n", filename);
     while (tar){
             if (my_str_compare(tar -> name, filename)==1) {
-                 printf("my_str_compare: %s\n", tar -> name);
+                //  printf("my_str_compare: %s\n", tar -> name);
                 return tar;
             }
         
