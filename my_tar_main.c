@@ -716,6 +716,7 @@ void  my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int n
     struct stat st;
     int num_new = 0;
     struct my_tar_type **local_tarr = tar;
+     struct my_tar_type *local_tarR;
     // check each source to see if it was updated
    // struct my_tar_type * mytar = *tar;
     for(int i = 0; i < num_files; i++){
@@ -723,51 +724,24 @@ void  my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int n
         // make sure original file exists
         if (lstat(files[i], &st)){
             my_str_write(1,"Problem with stat of this file");
-        }
-           // find the file in the archive
-          //  *local_tarr = create_tar_ptr();
-           // *local_tarr  =  find(mytar, files[i]);
-        //  if (local_tarr && my_str_compare(files[i], (*local_tarr)->name)==1) {     
+        }   
             if (find(*local_tarr, files[i])) {  
-                printf("find_tar name: %s\n", (*local_tarr)->name);
-                printf("find_tar TIME: %d\n",octal_to_decimal((*local_tarr)->mtime));
+                printf("find_tar name: %s\n", (find(*local_tarr, files[i]))->name);
+                printf("find_tar TIME: %d\n",octal_to_decimal((find(*local_tarr, files[i]))->mtime));
               
-               printf("st.st_mtime : %ld\n", st.st_mtime );
+                printf("st.st_mtime : %ld\n", st.st_mtime );
                 if (st.st_mtime >octal_to_decimal((*local_tarr)->mtime) ) {
                     printf("This file has a modification date newer than the corresponding entry in the archive, so it should be added\n");
+
+                } else {
+                    printf("Everything is up to date. No need to write\n");
                 }
              } else {
-             printf("Find is NULL\n"); 
-             printf("This is new file and should be added!\n");
-         }
-    
-      //  printf("find_tar name: %d\n",find_tar->typeflag );
-        // buffer_for_update[num_new] = (char *) malloc((my_str_len(files[i]) + 1)* sizeof(char));
-
-        //  if (find_tar){
-        //     if (st.st_mtime > octal_to_decimal(find_tar -> mtime)){
-        //         strncpy(buffer_for_update[num_new++], files[i], my_str_len(files[i]));
-        //         // my_str_copy_new(stdout, files[i]);
-        //     }
-        // } else{
-        //     strncpy(buffer_for_update[num_new++],files[i], my_str_len(files[i]));
-        //     // my_str_copy_new(stdout, files[i]);
-        // }
-    //   free_tar_ptr(*local_tar);
-    //             *local_tar = NULL;
-  
+                printf("This is new file and should be added!\n");
+             }
 
     }
-        //  free_tar_ptr(mytar);
-  //   mytar = NULL;
-
-    // update listed files only
-    // my_tar_write(fd, tar, (const char **) buffer_for_update, num_new);
-    // // cleanup
-    // for(int i = 0; i < num_new; i++){
-    //     free(buffer_for_update[i]);
-    // }
-    //  free(find_tar);
+        
 
 }
 
@@ -775,6 +749,7 @@ struct my_tar_type * find(struct my_tar_type * tar, const char * filename){
     printf("from FIND: filename:%s\n", filename);
     while (tar){
             if (my_str_compare(tar -> name, filename)==1) {
+                 printf("my_str_compare: %s\n", tar -> name);
                 return tar;
             }
         
