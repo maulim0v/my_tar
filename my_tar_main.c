@@ -520,7 +520,7 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
         my_str_copy_new(C_path_arr, C_path);
 
         *local_tar = create_tar_ptr();
-        int format_success = my_file_format(*local_tar, files[i], false, "");
+        int format_success = my_file_format(*local_tar, files[i], is_C_option_came_up_already, C_path_arr);
         if (format_success < 0)
         {
             free(C_path);
@@ -630,7 +630,11 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
             // directory
             DIR * d = opendir(parent);
             if (!d){
-               my_str_write(1, "Cannot open directory...\n");
+                my_str_write(1, "Cannot open directory, Stopping writing...\n");
+                free(parent);
+                closedir(d);
+                free(C_path);
+                break;
             }
 
             struct dirent * dir;
