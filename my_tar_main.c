@@ -471,12 +471,59 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
 {
     struct my_tar_type **local_tar = tar;
 
+    bool is_C_option_came_up_already = false;
+    char *C_option_directory = NULL;
+    char *C_path = NULL;
+
     for (int i = 0; i < num_files; ++i)
     {
+        if (my_str_len(files[i]) == 2 && files[i][0] == '-' && files[i][1] == 'C')
+        {
+            if (i < num_files - 1)
+            {
+                is_C_option_came_up_already = true;
+                C_option_directory = (char *)files[i+1];
+                ++i;
+                continue;
+            }
+            else
+            {
+                my_str_write(1, "-C option is specified without directory! Stopping tar writing ...\n");
+                break;
+            }
+        }
+
+        if (is_C_option_came_up_already == true)
+        {
+            int file_len = my_str_len(files[i]);
+            int C_dir_len = my_str_len(C_option_directory);
+            if (C_option_directory[C_dir_len - 1] == '/')
+            {
+                C_option_directory[C_dir_len - 1] = '\0';
+                --C_dir_len;
+            }
+            C_path = (char *) malloc ( (C_dir_len + 1 + file_len + 1) * sizeof(char) );
+            C_path[0] = '\0';
+            my_str_copy_new(C_path, C_option_directory);
+            my_str_copy_new(C_path, "/");
+            my_str_copy_new(C_path, files[i]);
+        }
+        else
+        {
+            C_path = (char *) malloc ( (my_str_len(files[i]) + 1) * sizeof(char) );
+            C_path[0] = '\0';
+            my_str_copy_new(C_path, files[i]);
+        }
+
+        char C_path_arr[my_str_len(C_path) + 1];
+        C_path_arr[0] = '\0';
+        my_str_copy_new(C_path_arr, C_path);
+
         *local_tar = create_tar_ptr();
-        int format_success = my_file_format(*local_tar, files[i]);
+        int format_success = my_file_format(*local_tar, files[i], false, "");
         if (format_success < 0)
         {
+            free(C_path);
             break;
         }
 
@@ -489,6 +536,7 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
             if (sz_written_ret != 512)
             {
                 my_str_write(1, "Tar writing size not equals to block size 512! Breaking tar writing ...\n");
+                free(C_path);
                 break;
             }
 
@@ -497,7 +545,7 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
             int sz_read_and_write = 0;
             int file_sz = octal_to_decimal((*local_tar)->size);
             
-            int file_desc = open((*local_tar) -> name, O_RDONLY);
+            int file_desc = open((*local_tar)->name, O_RDONLY);
 
             // To handle when size is way larger than 512 bytes
             while(true)
@@ -518,6 +566,7 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
                     my_str_write(1, "Reading from file failed! Breaking tar writing ...\n");
                     my_str_write(1, (*local_tar)->name);
                     my_str_write(1, " file failed! Breaking tar writing ...\n");
+                    free(C_path);
                     return -1;
                 }
 
@@ -527,6 +576,7 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
                     my_str_write(1, "Reading size not equals to writing sz to file! Breaking tar writing for ");
                     my_str_write(1, (*local_tar)->name);
                     my_str_write(1, " file ...\n");
+                    free(C_path);
                     return -1;
                 }
 
@@ -567,11 +617,11 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
                 (*local_tar)->chksum[7] = ' ';
             }
 
-            fprintf(stdout, "Writing %s", (*local_tar) -> name);
             const int sz_written_ret = write(fd, (*local_tar)->block, 512);
             if (sz_written_ret != 512)
             {
                 my_str_write(1, "Tar writing size not equals to block size 512! Breaking tar writing ...\n");
+                free(C_path);
                 break;
             }
             *offset_ptr += 512;
@@ -590,7 +640,7 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
                     char *path_and_file_name = malloc ((len_dirname+my_str_len(dir->d_name) + 2)* sizeof(char));
                     sprintf(path_and_file_name, "%s/%s", parent, dir -> d_name);
                     if (my_file_write(fd, &((*local_tar) -> next),(const char **) &path_and_file_name, 1, offset_ptr) < 0){
-                        my_str_write(1,"Recurse error");
+                        my_str_write(1,"Recurse error\n");
                     }
                                         
                     while( (*local_tar)->next != NULL )
@@ -609,14 +659,23 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
 
          (*local_tar)->next = NULL;
         local_tar = &(*local_tar)->next;
-
-        }
+        free(C_path);
+    }
     return 0;
 }
 
-int my_file_format(struct my_tar_type *tar, const char *file_name)
+int my_file_format(struct my_tar_type *tar, const char *file_name, bool is_C_option, char *C_path)
 {
-    int file_description = open(file_name, O_RDONLY);
+    int file_description = -1;
+    if (is_C_option == true)
+    {
+        file_description = open(C_path, O_RDONLY);
+    }
+    else
+    {
+        file_description = open(file_name, O_RDONLY);
+    }
+    
     if (file_description < 0)
     {
         my_str_write(1, "Error opening ");
@@ -693,7 +752,7 @@ int my_str_compare(const char *left, const char *right)
     return 1;
 }
 
-void my_str_copy_new(char *dest, char *src)
+void my_str_copy_new(char *dest, const char *src)
 {
     int dest_sz = my_str_len(dest);
     int src_sz = my_str_len(src);
