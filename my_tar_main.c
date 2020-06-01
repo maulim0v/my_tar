@@ -398,14 +398,12 @@ int my_mkdir(char *dir, int mode)
         if (i == path_len - 1)
         {
             int mkdir_int = mkdir(path, mode);
-            //printf("Dir name %s, Mkdir int %d\n", path, mkdir_int);
         }
         else if (path[i] == '/')
         {
             path[i] = '\0';
 
             int mkdir_int = mkdir(path, mode);
-            //printf("Dir name %s, Mkdir int %d\n", path, mkdir_int);
             path[i] = '/';
         }
     }
