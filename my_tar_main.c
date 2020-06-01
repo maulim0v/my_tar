@@ -376,6 +376,7 @@ int my_mkdir(char *dir, int mode)
     }
 
     char *path = (char *) malloc ( (path_len + 1) * sizeof(char));
+    path[path_len] = '\0';
     for(int i = 0; i < path_len; ++i)
     {
         if (i == path_len - 1)
@@ -383,6 +384,10 @@ int my_mkdir(char *dir, int mode)
             if (dir[i] == '/')
             {
                 path[i] = '\0';
+            }
+            else 
+            { 
+                path[i] = dir[i];
             }
         }
         else 
@@ -404,7 +409,6 @@ int my_mkdir(char *dir, int mode)
             path[i] = '/';
         }
     }
-    path[path_len] = '\0';
 
     free(path);
     return 0;
