@@ -230,7 +230,7 @@ int my_tar_read(int fd, struct my_tar_type **tar)
 
 int my_file_read(int fd, char *src, int src_sz)
 {
-    int read_sz = my_int_max(read(fd, src, src_sz), 0);
+    int read_sz = read(fd, src, src_sz);
     return read_sz;
 }
 
@@ -292,39 +292,127 @@ bool is_block_all_zeros(char *src, int src_sz)
     return true;
 }
 
-int my_tar_extract(int fd, struct my_tar_type *tar)
+int my_tar_extract(int fd, struct my_tar_type *tar, const char *files[], int num_files)
 {
-    // Set file reading to the beginning for tar file
-    lseek(fd, 0, SEEK_SET);
-
     int files_extracted = 0;
-    while(tar != NULL)
-    {
-        // Do something
-        my_file_extract(fd, tar);
 
-        tar = tar->next;
-        ++files_extracted;
+    bool is_C_option_came_up_already = false;
+    char *C_option_directory = NULL;
+    char *C_path = NULL;
+
+    if (num_files > 0)
+    {
+        while (tar != NULL)
+        {
+            for (int i = 0; i < num_files; ++i)
+            {
+                if (my_str_len(files[i]) == 2 && files[i][0] == '-' && files[i][1] == 'C')
+                {
+                    if (i < num_files - 1)
+                    {
+                        is_C_option_came_up_already = true;
+                        C_option_directory = (char *)files[i+1];
+                        ++i;
+                        continue;
+                    }
+                    else
+                    {
+                        my_str_write(1, "-C option is specified without directory! Stopping tar writing ...\n");
+                        break;
+                    }
+                }
+
+                if (is_C_option_came_up_already == true)
+                {
+                    int file_len = my_str_len(files[i]);
+                    int C_dir_len = my_str_len(C_option_directory);
+                    if (C_option_directory[C_dir_len - 1] == '/')
+                    {
+                        C_option_directory[C_dir_len - 1] = '\0';
+                        --C_dir_len;
+                    }
+                    C_path = (char *) malloc ( (C_dir_len + 1 + file_len + 1) * sizeof(char) );
+                    C_path[0] = '\0';
+                    my_str_copy_new(C_path, C_option_directory);
+                    my_str_copy_new(C_path, "/");
+                    my_str_copy_new(C_path, files[i]);
+                }
+                else
+                {
+                    C_path = (char *) malloc ( (my_str_len(files[i]) + 1) * sizeof(char) );
+                    C_path[0] = '\0';
+                    my_str_copy_new(C_path, files[i]);
+                }
+
+                char C_path_arr[my_str_len(C_path) + 1];
+                C_path_arr[0] = '\0';
+                my_str_copy_new(C_path_arr, C_path);
+
+                if (my_str_compare(tar->name, files[i]) == 1)
+                {
+                    lseek(fd, tar->data_begin_ind, SEEK_SET);
+                    my_file_extract(fd, tar, C_path_arr);
+                    ++files_extracted;
+                }
+                free(C_path);
+            }
+            is_C_option_came_up_already = false;
+            C_option_directory = NULL;
+            tar = tar->next;
+        }
+    }
+    else
+    {
+        // Set file reading to the beginning for tar file
+        lseek(fd, 0, SEEK_SET);
+
+        while(tar != NULL)
+        {
+            // Do something
+            my_file_extract(fd, tar, tar->name);
+
+            tar = tar->next;
+            ++files_extracted;
+        }
     }
 
     return files_extracted;
 }
 
-int my_file_extract(int fd, struct my_tar_type *tar)
+int my_file_extract(int fd, struct my_tar_type *tar, char *file_name_modified)
 {
     if (tar->typeflag == DIRECTORY)
     {
         int mode_dir = octal_to_decimal(tar->mode) & 0777;
-        my_mkdir(tar->name, mode_dir);
+        my_mkdir(file_name_modified, mode_dir);
     }
     if (tar->typeflag == NORMAL_FILE)
     {
+        char *path_to_mkdir = (char *) malloc ((my_str_len(file_name_modified) + 2) * sizeof(char));
+        path_to_mkdir[0] = '\0';
+        my_str_copy_new(path_to_mkdir, "/");
+        my_str_copy_new(path_to_mkdir, file_name_modified);
+        for(int i = my_str_len(file_name_modified) - 1; i >= 0; --i)
+        {
+            if (path_to_mkdir[i] == '/')
+            {
+                path_to_mkdir[i] = '\0';
+                break;
+            }
+        }
+
+        int dir_mode = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH; // 0755
+        my_mkdir(path_to_mkdir, dir_mode);
+        
+        free(path_to_mkdir);
+
         const int file_sz = octal_to_decimal(tar->size);
         const int file_mode = octal_to_decimal(tar->mode) & 0777;
 
-        const int file_fd = open(tar->name, O_WRONLY | O_CREAT | O_TRUNC, file_mode);
+        const int file_fd = open(file_name_modified, O_WRONLY | O_CREAT | O_TRUNC, file_mode);
+        
         const int seek_move_to_read = 512 + tar->data_begin_ind;
-
+        
         // Move current offset (seek) for reading from original tar file
         lseek(fd, seek_move_to_read, SEEK_SET);
 
@@ -506,7 +594,7 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
             C_path[0] = '\0';
             my_str_copy_new(C_path, C_option_directory);
             my_str_copy_new(C_path, "/");
-            my_str_copy_new(C_path, files[i]);
+            my_str_copy_new(C_path, files[i]);            
         }
         else
         {
@@ -526,7 +614,7 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
             free(C_path);
             break;
         }
-
+        
         (*local_tar)->data_begin_ind = *offset_ptr;
 
         if ((*local_tar)->typeflag == NORMAL_FILE)
@@ -545,8 +633,12 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
             int sz_read_and_write = 0;
             int file_sz = octal_to_decimal((*local_tar)->size);
             
-            int file_desc = open((*local_tar)->name, O_RDONLY);
-
+            int file_desc = open(C_path_arr, O_RDONLY);
+            if (file_desc < 0)
+            {
+                my_str_write(1, "Failed to open/create file for tar writing. Breaking ...\n");
+                return -1;
+            }
             // To handle when size is way larger than 512 bytes
             while(true)
             {
@@ -564,7 +656,7 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
                 if (sz_read_ret < 0)
                 {
                     my_str_write(1, "Reading from file failed! Breaking tar writing ...\n");
-                    my_str_write(1, (*local_tar)->name);
+                    my_str_write(1, C_path_arr);
                     my_str_write(1, " file failed! Breaking tar writing ...\n");
                     free(C_path);
                     return -1;
@@ -582,7 +674,6 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
 
                 sz_read_and_write += sz_written_ret;
             }
-
             close(file_desc);
 
             // Fill the remaining spot with all zeros
