@@ -738,12 +738,15 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
             }
 
             struct dirent * dir;
-            while ((dir = readdir(d))){
+            while ((dir = readdir(d)))
+            {
                 const size_t sublen = strlen(dir -> d_name);
-                if ((my_str_compare(dir->d_name, ".") != 1 ) && (my_str_compare(dir->d_name, "..") != 1 )){
+                if ((my_str_compare(dir->d_name, ".") != 1 ) && (my_str_compare(dir->d_name, "..") != 1 ))
+                {
                     char *path_and_file_name = malloc ((len_dirname+my_str_len(dir->d_name) + 2)* sizeof(char));
                     sprintf(path_and_file_name, "%s/%s", parent, dir -> d_name);
-                    if (my_file_write(fd, &((*local_tar) -> next),(const char **) &path_and_file_name, 1, offset_ptr) < 0){
+                    if (my_file_write(fd, &((*local_tar) -> next),(const char **) &path_and_file_name, 1, offset_ptr) < 0)
+                    {
                         my_str_write(1,"Recurse error\n");
                     }
                                         
@@ -893,58 +896,53 @@ void my_str_copy_new(char *dest, const char *src)
 }
 
 
-void  my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int num_files)
+void my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int num_files)
 {
     // char ** buffer_for_update = (char **) malloc((num_files+1)*sizeof(char *));
     struct stat st;
     int num_new = 0;
     struct my_tar_type **local_tarr = tar;
-     struct my_tar_type *local_tarR;
+    struct my_tar_type *local_tarR;
     const char *new_files[2];
-    for(int i = 0; i < num_files; i++){
-         printf("file name[%d]: %s\n",i,files[i] );
-        //   new_files[0] ="\0";
-        // make sure original file exists
-        if (lstat(files[i], &st)){
+    for(int i = 0; i < num_files; i++)
+    {
+        my_str_write(1, "Checking file name for tar update: ");
+        my_str_write(1, files[i]);
+
+        // Make sure original file exists
+        if (lstat(files[i], &st))
+        {
             my_str_write(1,"Problem with stat of this file");
         }   
-            if (find(*local_tarr, files[i])) {  
-                local_tarR =find(*local_tarr, files[i]);
-                printf("find_tar name: %s\n", (find(*local_tarr, files[i]))->name);
-                printf("find_tar TIME: %d\n",octal_to_decimal((find(*local_tarr, files[i]))->mtime));
-              
-                printf("st.st_mtime : %ld\n", st.st_mtime );
-                if (st.st_mtime >octal_to_decimal(find(*local_tarr, files[i])->mtime) ) {
-                    printf("This file has a modification date newer than the corresponding entry in the archive, so it should be added\n");
-                    new_files[0] = local_tarR->name; 
-                    //  new_files[1] = "\0"; 
-                     printf("new_files: %s\n",  new_files[0]);
-                     my_tar_write(fd, tar, new_files, num_files);
+        if (find(*local_tarr, files[i])) 
+        {  
+            local_tarR =find(*local_tarr, files[i]);
+            
+            if (st.st_mtime >octal_to_decimal(find(*local_tarr, files[i])->mtime) ) 
+            {
+                new_files[0] = local_tarR->name; 
+                my_tar_write(fd, tar, new_files, num_files);
 
-                } else {
-                    printf("Everything is up to date. No need to write\n");
-                }
-             } else {
-                printf("This is new file and should be added!\n");
-                  
-                   new_files[0] = files[i]; 
-                //    new_files[1] = "\0"; 
-                     printf("new_files: %s\n",  new_files[0]);
-                     my_tar_write(fd, tar, new_files, num_files);
-             }
-
+            } else 
+            {
+                my_str_write(1, "Everything is up to date. No need to write\n");
+            }
+            } else 
+            {
+            my_str_write(1, "This is new file and should be added!\n");
+            new_files[0] = files[i]; 
+            my_tar_write(fd, tar, new_files, num_files);
+        }
     }
-        
-
 }
 
 struct my_tar_type * find(struct my_tar_type * tar, const char * filename){
-    // printf("from FIND: filename:%s\n", filename);
-    while (tar){
-            if (my_str_compare(tar -> name, filename)==1) {
-                //  printf("my_str_compare: %s\n", tar -> name);
-                return tar;
-            }
+
+    while (tar)
+    {
+        if (my_str_compare(tar -> name, filename)==1) {
+            return tar;
+        }
         
        tar = tar -> next;
     }
