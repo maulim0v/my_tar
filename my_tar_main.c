@@ -59,7 +59,7 @@ void init_tar_ptr(struct my_tar_type *tar)
     init_char_array(tar->mtime, MTIME_MAX_ELEMENT, init_char);
     init_char_array(tar->chksum, CHKSUM_MAX_ELEMENT, init_char);
     tar->typeflag = init_char;
-    //init_char_array(tar->linkname, LINKNAME_MAX_ELEMENT, init_char);
+    init_char_array(tar->linkname, LINKNAME_MAX_ELEMENT, init_char);
     init_char_array(tar->block, BLOCK_MAX_ELEMENT, init_char);
 }
 
@@ -154,6 +154,7 @@ int populate_block(struct my_tar_type *tar)
     {
         tar->block[str_ind++] = tar->typeflag;
     }
+    my_full_str_copy(tar->block, &str_ind, tar->linkname, LINKNAME_MAX_ELEMENT);
 
     return str_ind;
 }
@@ -247,6 +248,7 @@ void unpopulate_block(struct my_tar_type *tar)
     {
         tar->typeflag = tar->block[str_ind++];
     }
+    my_full_str_uncopy(tar->linkname, LINKNAME_MAX_ELEMENT, tar->block, &str_ind);
 }
 
 void my_full_str_uncopy(char* dest, size_t dest_sz, const char *src, int *src_str_ind)
@@ -386,7 +388,7 @@ int my_file_extract(int fd, struct my_tar_type *tar, char *file_name_modified)
         int mode_dir = octal_to_decimal(tar->mode) & 0777;
         my_mkdir(file_name_modified, mode_dir);
     }
-    if (tar->typeflag == NORMAL_FILE)
+    else if (tar->typeflag == NORMAL_FILE)
     {
         char *path_to_mkdir = (char *) malloc ((my_str_len(file_name_modified) + 2) * sizeof(char));
         path_to_mkdir[0] = '\0';
@@ -450,6 +452,13 @@ int my_file_extract(int fd, struct my_tar_type *tar, char *file_name_modified)
         }
 
         close(file_fd);
+    }
+    else if (tar->typeflag == SYMBOLIC_LINK)
+    {
+        if (symlink(tar->linkname, tar->name) < 0)
+        {
+            my_str_write(1, "Unable to make symlink. Breaking ...\n");
+        }
     }
 
     return 0;
@@ -751,8 +760,22 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
             *offset_ptr += 512;
 
         }
+        else if ((*local_tar)->typeflag == SYMBOLIC_LINK)
+        {
+            // Write block header metadata into tar file
+            const int sz_written_ret = write(fd, (*local_tar)->block, 512);
+            if (sz_written_ret != 512)
+            {
+                my_str_write(1, "Tar writing size not equals to block size 512! Breaking tar writing ...\n");
+                free(C_path);
+                break;
+            }
 
-         (*local_tar)->next = NULL;
+            // Update offset properly (block + file size)
+            *offset_ptr += (octal_to_decimal((*local_tar)->size) + 512);
+        }
+
+        (*local_tar)->next = NULL;
         local_tar = &(*local_tar)->next;
         free(C_path);
     }
@@ -805,9 +828,19 @@ int my_file_format(struct my_tar_type *tar, const char *file_name, bool is_C_opt
         init_char_array(tar->size, SIZE_MAX_ELEMENT - 1, '0');
         tar->typeflag = DIRECTORY;
     }
+    else if (S_ISLNK(file_st.st_mode) == true)
+    {
+        tar->typeflag = SYMBOLIC_LINK;
+
+        // Get link name
+        if (readlink(tar->name, tar->linkname, LINKNAME_MAX_ELEMENT) < 0)
+        {
+            my_str_write(1, "Could not read link!\n");
+        }
+    }
     
-    // -9 is offset backwards for checksum
-    int str_ind = populate_block(tar) - 9;
+    // -109 is offset backwards for checksum
+    int str_ind = populate_block(tar) - 109;
     decimal_to_octal(tar->chksum, get_tar_checksum(tar), 6);
     tar->chksum[6] = '\0';
     tar->chksum[7] = ' ';

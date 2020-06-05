@@ -43,7 +43,7 @@ struct my_tar_type
     char mtime[MTIME_MAX_ELEMENT];            
     char chksum[CHKSUM_MAX_ELEMENT];            
     char typeflag;             
-    //char linkname[LINKNAME_MAX_ELEMENT]; 
+    char linkname[LINKNAME_MAX_ELEMENT]; 
     /// @}
 
     /* UStar format */
