@@ -9,6 +9,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+int symlink(const char *__from, const char *__to);
+int readlink(const char *__restrict __path, char *__restrict __buf, size_t __len);
+int lstat(const char *restrict __file, struct stat *restrict __buf);
 
 struct my_tar_type* create_tar_ptr()
 {
@@ -73,13 +76,19 @@ void init_char_array(char *str, int size, const char init_char)
 
 void my_str_write(int fd, const char *str)
 {
+    int a = 0;
     if (str != NULL)
     {
-        write(fd, str, my_str_len(str));
+        a = write(fd, str, my_str_len(str));
     }
     else 
     {
-        write(fd, "(null)", 6);    
+        a = write(fd, "(null)", 6);    
+    }
+
+    if (a < 0)
+    {
+        return;
     }
 }
 
@@ -131,7 +140,6 @@ void decimal_to_octal(char *dest, int input, int placeholder)
     }
 
     int count = 0;
-    int sum = 0;
     while (input > 0)
     {
         int rem = input % 8;
@@ -494,13 +502,13 @@ int my_mkdir(char *dir, int mode)
 
         if (i == path_len - 1)
         {
-            int mkdir_int = mkdir(path, mode);
+            mkdir(path, mode);
         }
         else if (path[i] == '/')
         {
             path[i] = '\0';
 
-            int mkdir_int = mkdir(path, mode);
+            mkdir(path, mode);
             path[i] = '/';
         }
     }
@@ -693,7 +701,11 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
                 size_to_fill_with_zeros = 512 - rem;
                 for (int i = 0; i < size_to_fill_with_zeros; ++i)
                 {
-                    write(fd, "\0", 1);
+                    int a = write(fd, "\0", 1);
+                    if (a < 0)
+                    {
+                        break;
+                    }
                 }
                 *offset_ptr += size_to_fill_with_zeros;
             }
@@ -732,7 +744,6 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
             if (!d){
                 my_str_write(1, "Cannot open directory, Stopping writing...\n");
                 free(parent);
-                closedir(d);
                 free(C_path);
                 break;
             }
@@ -740,7 +751,6 @@ int my_file_write(int fd, struct my_tar_type **tar, const char *files[], int num
             struct dirent * dir;
             while ((dir = readdir(d)))
             {
-                const size_t sublen = strlen(dir -> d_name);
                 if ((my_str_compare(dir->d_name, ".") != 1 ) && (my_str_compare(dir->d_name, "..") != 1 ))
                 {
                     char *path_and_file_name = malloc ((len_dirname+my_str_len(dir->d_name) + 2)* sizeof(char));
@@ -857,7 +867,11 @@ int my_tar_write_end(int fd, int offset)
 {
     for (int i = 0; i < 2 * BLOCK_MAX_ELEMENT; ++i)
     {
-        write(fd, "\0", 1);
+        int a = write(fd, "\0", 1);
+        if (a < 0)
+        {
+            break;
+        }
     }
 
     return 0;
@@ -900,7 +914,6 @@ void my_tar_update(int fd, struct my_tar_type **tar, const char *files[], int nu
 {
     // char ** buffer_for_update = (char **) malloc((num_files+1)*sizeof(char *));
     struct stat st;
-    int num_new = 0;
     struct my_tar_type **local_tarr = tar;
     struct my_tar_type *local_tarR;
     const char *new_files[2];

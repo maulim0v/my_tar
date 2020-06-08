@@ -1,11 +1,15 @@
-output: main.o my_tar_main.o
-	gcc main.o my_tar_main.o -g3 -fsanitize=address -o my_tar
+CC = gcc
+CFLAGS = -g3 -Wall -O3 -std=c99 -fsanitize=address
 
-main.o: main.c
-	gcc -c main.c
+SOURCES = main.c my_tar_main.c
+HEADERS = my_tar_main.h
+OBJECTS = $(SOURCES:.c=.o) $(HEADERS)
+TARGET = my_tar
 
-tar_main.o: my_tar_main.c my_tar_main.h
-	gcc -c my_tar_main.c
+$(TARGET): $(OBJECTS)
+	$(CC) $(OBJECTS) $(CFLAGS) -o $(TARGET)
+
+.PHONY: clean
 
 clean:
-	rm *.o my_tar
+	@rm -f $(OBJECTS) $(TARGET) core

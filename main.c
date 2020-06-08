@@ -14,6 +14,7 @@ int main( int argc, const char* argv[] )
         return 1;
     }
 
+
     const char *flags = argv[1];
     int c = 0;
     int r = 0;
@@ -22,7 +23,6 @@ int main( int argc, const char* argv[] )
     int x = 0;
 
     int f = 0;
-    int C = 0;
 
     for(int i = 0; i < my_str_len(flags); ++i)
     {
@@ -83,29 +83,29 @@ int main( int argc, const char* argv[] )
         else if (r == 1)
         {
             const int fd = open(filename, O_RDWR);
-            int num_files_read = my_tar_read(fd, tar);
+            my_tar_read(fd, tar);
             my_tar_write(fd, tar, files, num_files);
             close(fd);
         }
         else if (t == 1)
         {
             const int fd = open(filename, O_RDWR);
-            int num_files_read = my_tar_read(fd, tar);
+            my_tar_read(fd, tar);
             my_tar_print(*tar);
             close(fd);
         }
         else if (u == 1)
         {
             const int fd = open(filename, O_RDWR);
-            int num_files_read = my_tar_read(fd, tar);
+            my_tar_read(fd, tar);
             my_tar_update(fd, tar, files, num_files);
             close(fd);
         }
         else if (x == 1)
         {
             const int fd = open(filename, O_RDWR);
-            int num_files_read = my_tar_read(fd, tar);
-            int num_files_extracted = my_tar_extract(fd, *tar, files, num_files);
+            my_tar_read(fd, tar);
+            my_tar_extract(fd, *tar, files, num_files);
             close(fd);
         }
         else
