@@ -961,3 +961,54 @@ struct my_tar_type * find(struct my_tar_type * tar, const char * filename){
     }
     return NULL;
 }
+
+struct options my_getopt(const char* argv[])
+{
+    struct options ret_options;
+    ret_options.is_create = false;
+    ret_options.is_append = false;
+    ret_options.is_ls = false;
+    ret_options.is_update = false;
+    ret_options.is_extract = false;
+    ret_options.is_file = false;
+    ret_options.failure = false;
+
+    const char *flags = argv[1];
+    for(int i = 0; i < my_str_len(flags); ++i)
+    {
+        if (flags[i] == '-')
+        {
+            continue;
+        }
+        else if (flags[i] == 'c')
+        {
+            ret_options.is_create = true;
+        }
+        else if (flags[i] == 'r')
+        {
+            ret_options.is_append = true;
+        }
+        else if (flags[i] == 't')
+        {
+            ret_options.is_ls = true;
+        }
+        else if (flags[i] == 'u')
+        {
+            ret_options.is_update = true;
+        }
+        else if (flags[i] == 'x')
+        {
+            ret_options.is_extract = true;
+        }
+        else if (flags[i] == 'f')
+        {
+            ret_options.is_file = true;
+        }
+        else
+        {
+            ret_options.failure = true;
+            return ret_options; 
+        }
+    }  
+    return ret_options; 
+}

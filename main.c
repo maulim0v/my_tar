@@ -14,52 +14,12 @@ int main( int argc, const char* argv[] )
         return 1;
     }
 
-
-    const char *flags = argv[1];
-    int c = 0;
-    int r = 0;
-    int t = 0;
-    int u = 0;
-    int x = 0;
-
-    int f = 0;
-
-    for(int i = 0; i < my_str_len(flags); ++i)
+    struct options opts = my_getopt(argv);
+    if (opts.failure == true)
     {
-        if (flags[i] == '-')
-        {
-            continue;
-        }
-        else if (flags[i] == 'c')
-        {
-            c = 1;
-        }
-        else if (flags[i] == 'r')
-        {
-            r = 1;
-        }
-        else if (flags[i] == 't')
-        {
-            t = 1;
-        }
-        else if (flags[i] == 'u')
-        {
-            u = 1;
-        }
-        else if (flags[i] == 'x')
-        {
-            x = 1;
-        }
-        else if (flags[i] == 'f')
-        {
-            f = 1;
-        }
-        else
-        {
-            my_str_write(1, "Unknown input flag is specified! Stopping tar ...\n");
-            return 1;
-        }
-    }   
+        my_str_write(1, "Unknown input flag is specified! Stopping tar ...\n");
+        return 1;
+    }
 
     int num_files = my_int_max(argc - 3, 0);
 
@@ -72,36 +32,36 @@ int main( int argc, const char* argv[] )
 
     struct my_tar_type **tar = create_tar_double_ptr();    
 
-    if (f == 1)
+    if (opts.is_file == true)
     {
-        if (c == 1)
+        if (opts.is_create == true)
         {
             int fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
             my_tar_write(fd, tar, files, num_files);
             close(fd);
         }
-        else if (r == 1)
+        else if (opts.is_append == true)
         {
             const int fd = open(filename, O_RDWR);
             my_tar_read(fd, tar);
             my_tar_write(fd, tar, files, num_files);
             close(fd);
         }
-        else if (t == 1)
+        else if (opts.is_ls == true)
         {
             const int fd = open(filename, O_RDWR);
             my_tar_read(fd, tar);
             my_tar_print(*tar);
             close(fd);
         }
-        else if (u == 1)
+        else if (opts.is_update == true)
         {
             const int fd = open(filename, O_RDWR);
             my_tar_read(fd, tar);
             my_tar_update(fd, tar, files, num_files);
             close(fd);
         }
-        else if (x == 1)
+        else if (opts.is_extract == true)
         {
             const int fd = open(filename, O_RDWR);
             my_tar_read(fd, tar);
@@ -110,14 +70,14 @@ int main( int argc, const char* argv[] )
         }
         else
         {
-
+            // Do nothing
         }
     }
     else
     {
         my_str_write(1, "No -f is specified! Stopping ...\n");
+        return 1;
     }
-    
 
     free_tar_double_ptr(tar);
     return 0;

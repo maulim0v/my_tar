@@ -66,6 +66,19 @@ struct my_tar_type
     struct my_tar_type *next;
 };
 
+struct options
+{
+    bool is_create;
+    bool is_append;
+    bool is_ls;
+    bool is_update;
+    bool is_extract;
+    bool is_file;
+    bool failure;
+};
+
+struct options my_getopt(const char* argv[]);
+
 struct my_tar_type* create_tar_ptr();
 void free_tar_ptr(struct my_tar_type *tar);
 struct my_tar_type** create_tar_double_ptr();
