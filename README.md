@@ -4,7 +4,7 @@
 ./my_tar
 
 ## Description
-Simple implementation of tar. my_tar is a command to manipulate tape archive. The first option to tar is a mode indicator from the following list:
+Simple implementation of tar. `my_tar` is a command to manipulate tape archive. The first option to tar is a mode indicator from the following list:
 
    - -c Create a new archive containing the specified items.
    - -r Like -c, but new entries are appended to the archive. The -f option is required.
@@ -52,3 +52,14 @@ make
 ## Example
 The following creates a new archive called file.tar that contains two files source.c and
 source.h:
+```
+> ./my_tar -cf file.tar source.c source.h
+```
+
+To view a detailed table of contents for this archive:
+
+```
+> ./my_tar -tf file.tar
+source.c
+source.h
+```
